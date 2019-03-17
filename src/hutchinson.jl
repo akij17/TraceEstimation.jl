@@ -30,16 +30,20 @@ function ev(A)
     ev = (c0^2)/(p^v0 * c1)
 end
 
-#Hutchinson trace estimation using extrapolation technique 
-#Page 177
-function hutch(A, N=30)
-    tr = 0.0
-    sum = 0.0
-    # (Page 179)
-    for i in 1:N
-        sum = sum + ev(A)
+# Hutchinson trace estimation using extrapolation technique 
+# Page 177
+function hutch(A, N=30, skipverify = false)
+    # Verify if the matrix is Hermitian and Positive Definite 
+    # Unless third argument is true
+    if skipverify == true || isposdef == true
+        tr = 0.0
+        sum = 0.0
+        # (Page 179)
+        for i in 1:N
+            sum = sum + ev(A)
+        end
+        tr = sum/N
     end
-    tr = sum/N
 end
 
 #= TESTS
