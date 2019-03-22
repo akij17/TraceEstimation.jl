@@ -8,16 +8,16 @@ using LinearAlgebra
 #using CuArrays
 
 struct HutchWorkspace
-    A::AbstractArray{AbstractFloat, 2}
+    A
     randfunc::Function
-    x::AbstractArray{AbstractFloat, 1}
-    y::AbstractArray{AbstractFloat, 1}
-    N::Int64
-    skipverify::Bool
+    x
+    y
+    N
+    skipverify
 end
 
 """
-    HutchWorkspace(A::AbstractArray{Float64, 2}; N = 30, skipverify = false)
+    HutchWorkspace(A; N = 30, skipverify = false)
 
 # Arguments
  - `A` : Symmetric Hermitian Matrix 
@@ -32,7 +32,7 @@ function HutchWorkspace(A; N = 30, skipverify = false)
 end
 
 """
-    HutchWorkspace(A::AbstractArray{Float64, 2}, randfunc::Function; N = 30, skipverify = false)
+    HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
 
 # Arguments
  - `A` : Symmetric Hermitian Matrix 
@@ -42,7 +42,7 @@ end
  - `N` : Number of iterations (Default: 30)
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
-function HutchWorkspace(A::AbstractArray{AbstractFloat, 2}, randfunc::Function; N = 30, skipverify = false)
+function HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
     x = randfunc()
     y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
