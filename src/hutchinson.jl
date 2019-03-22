@@ -5,7 +5,7 @@
 export hutch, hutch!, HutchWorkspace
 
 using LinearAlgebra
-using CuArrays
+#using CuArrays
 
 struct HutchWorkspace
     A::AbstractArray{Float64, 2}
@@ -104,6 +104,7 @@ of inverse of the matrix. (in-place version of hutch)
 function hutch!(w::HutchWorkspace)
     if w.skipverify == true
         @warn "Skipping isposdef verification. This may give unexpected results!"
+    end
     if w.skipverify == true || isposdef(w.A)
         tr = 0.0
         sum = 0.0
