@@ -9,6 +9,7 @@ using CuArrays
 
 struct HutchWorkspace
     A::AbstractArray{Float64, 2}
+    randfunc::Function
     x::AbstractArray{Float64, 1}
     y::AbstractArray{Float64, 1}
     N::Int64
@@ -16,7 +17,7 @@ struct HutchWorkspace
 end
 
 """
-    HutchWorkspace(A)
+    HutchWorkspace(A::AbstractArray{Float64, 2}; N = 30, skipverify = false)
 
 # Arguments
  - `A` : Symmetric Hermitian Matrix 
@@ -24,9 +25,27 @@ end
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
 function HutchWorkspace(A; N = 30, skipverify = false)
-    x = rand(-1:2:1, size(A)[1])
+    randfunc() = rand(-1:2:1, size(A)[1])
+    x = randfunc()
     y = similar(x)
-    return HutchWorkspace(A, x, y, N, skipverify)
+    return HutchWorkspace(A, randfunc, x, y, N, skipverify)
+end
+
+"""
+    HutchWorkspace(A::AbstractArray{Float64, 2}, randfunc::Function; N = 30, skipverify = false)
+
+# Arguments
+ - `A` : Symmetric Hermitian Matrix 
+ - `randfunc` : Function to generate random values for x
+                Distributed uniformly 
+                (Base: rand(-1:2:1, size(A)[1]))
+ - `N` : Number of iterations (Default: 30)
+ - `skipverify` : If false, it will check isposdef(A) (Default: false)
+"""
+function HutchWorkspace(A::AbstractArray{Float64, 2}, randfunc::Function; N = 30, skipverify = false)
+    x = randfunc()
+    y = similar(x)
+    return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
 
 
@@ -43,14 +62,27 @@ function ev(w::HutchWorkspace)
     mul!(w.x, w.A, w.y)
     c3 = dot(w.y, w.x)
 
-    # Find p (Page 175)
-    p = (c0 * c2)/(c1^2)
-    
-    # Find v0 (Page 179, Numerical Example) -> Corollary 4 in [16]
-    v0 = log10((c1^2)/(c0 * c2)) / log10((c1 * c3)/(c2^2))
+    # intermediate arguments for v0 
+    nVal = (c1^2)/(c0 * c2)
+    dVal = (c1 * c3)/(c2^2)
 
-    # Finally find ev (Page 175)
-    ev = (c0^2)/(p^v0 * c1)
+    if (nVal > 0) && (dVal > 0)
+        # Find p (Page 175)
+        p = (c0 * c2)/(c1^2)
+        # Find v0 (Page 179, Numerical Example) -> Corollary 4 in [16]
+        v0 = log10(nVal) / log10(dVal)
+        # Finally find ev (Page 175)
+        ev = (c0^2)/(p^v0 * c1)
+        return ev
+    else
+        @warn "v0 cannot be calculated. Aitken's process may give inaccurate results!"
+        # Aitken's Process to Predict the negative moment
+        # (Page 176, eq 4)
+        g1 = c0 - (((c1 - c0)^2) / (c2 - c1))
+        g2 = c1 - (((c2 - c0) * (c2 - c1)) / (c3 - c2))
+        g = (g1 + g2)/2
+        return g
+    end
 end
 """
     hutch(A; N = 30, skipverify = false)
@@ -70,6 +102,8 @@ Take a HutchWorkspace object as input, apply hutchinson estimation algorithm and
 of inverse of the matrix. (in-place version of hutch)
 """
 function hutch!(w::HutchWorkspace)
+    if w.skipverify == true
+        @warn "Skipping isposdef verification. This may give unexpected results!"
     if w.skipverify == true || isposdef(w.A)
         tr = 0.0
         sum = 0.0
