@@ -42,7 +42,7 @@ end
  - `N` : Number of iterations (Default: 30)
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
-function HutchWorkspace(A::AbstractArray{Float64, 2}, randfunc::Function; N = 30, skipverify = false)
+function HutchWorkspace(A::AbstractArray{AbstractFloat, 2}, randfunc::Function; N = 30, skipverify = false)
     x = randfunc()
     y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
