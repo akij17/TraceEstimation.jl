@@ -8,10 +8,10 @@ using LinearAlgebra
 #using CuArrays
 
 struct HutchWorkspace
-    A::AbstractArray{Float64, 2}
+    A::AbstractArray{AbstractFloat, 2}
     randfunc::Function
-    x::AbstractArray{Float64, 1}
-    y::AbstractArray{Float64, 1}
+    x::AbstractArray{AbstractFloat, 1}
+    y::AbstractArray{AbstractFloat, 1}
     N::Int64
     skipverify::Bool
 end
