@@ -8,12 +8,12 @@ using LinearAlgebra
 #using CuArrays
 
 struct HutchWorkspace
-    A
+    A::AbstractArray{<:Any, 2}
     randfunc::Function
-    x
-    y
-    N
-    skipverify
+    x::AbstractArray{<:Any, 1}
+    y::AbstractArray{<:Any, 1}
+    N::Int64
+    skipverify::Bool
 end
 
 """
