@@ -25,9 +25,9 @@ end
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
 function HutchWorkspace(A; N = 30, skipverify = false)
-    randfunc() = rand(-1:2:1, size(A)[1])
+    randfunc() = rand(-1.0:2.0:1.0, size(A)[1])
     x = randfunc()
-    y = similar(x, eltype(x) <: Integer ? Float64 : eltype(x))
+    y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
 
@@ -43,16 +43,15 @@ end
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
 function HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
-    x = randfunc()
-    y = similar(x, eltype(x) <: Integer ? Float64 : eltype(x))
+    x = randfunc(size(A)[1])
+    y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
-
 
 # Calculating the moments and extrapolating c-1 
 function ev(w::HutchWorkspace)
     # Create new random values for x
-    copyto!(w.x, rand(-1:2:1, size(w.A)[1]))
+    copyto!(w.x, w.randfunc(size(w.A)[1]))
 
     # Find c(r) = x' * A^r * x = dot(x', A^r * x)
     c0 = dot(w.x, w.x)
@@ -76,14 +75,28 @@ function ev(w::HutchWorkspace)
         return ev0
     else
         @warn "v0 cannot be calculated. Aitken's process may give inaccurate results!"
-        # Aitken's Process to Predict the negative moment
-        # (Page 176, eq 4)
-        g1 = c0 - (((c1 - c0)^2) / (c2 - c1))
-        g2 = c1 - (((c2 - c0) * (c2 - c1)) / (c3 - c2))
-        g = (g1 + g2)/2
-        return g
+        w1 = HutchWorkspace(w.A, w.randfunc, w.x, w.y, w.N, w.skipverify)
+        return hutch!(w1, aitken=true)
     end
 end
+
+# Aitken's Process to Predict the negative moment
+# (Page 176, eq 4)        
+function gfun(w::HutchWorkspace)
+    copyto!(w.x, w.randfunc(size(w.A)[1]))
+
+    c0 = dot(w.x, w.x)
+    mul!(w.y, w.A, w.x)
+    c1 = dot(w.y, w.x)
+    c2 = dot(w.y, w.y)
+    mul!(w.x, w.A, w.y)
+    c3 = dot(w.y, w.x)
+
+    g1 = c0 - (((c1 - c0)^2) / (c2 - c1))
+    g2 = c1 - (((c2 - c0) * (c2 - c1)) / (c3 - c2))
+    g = (g1 + g2)/2
+end
+
 """
     hutch(A; N = 30, skipverify = false)
 
@@ -95,13 +108,14 @@ function hutch(A; N=30, skipverify = false)
     w = HutchWorkspace(A, N = N, skipverify = skipverify)
     return hutch!(w)
 end
+
 """
     hutch!(w::HutchWorkspace)
 
 Take a HutchWorkspace object as input, apply hutchinson estimation algorithm and solve for trace 
 of inverse of the matrix. (in-place version of hutch)
 """
-function hutch!(w::HutchWorkspace)
+function hutch!(w::HutchWorkspace; aitken = false)
     if w.skipverify == true
         @warn "Skipping isposdef verification. This may give unexpected results!"
     end
@@ -109,21 +123,24 @@ function hutch!(w::HutchWorkspace)
         tr = 0.0
         sum = 0.0
         for i in 1:w.N
-            sum = sum + ev(w)
+            # if aitken == true => use aitken process to predict the terms via gfun
+            sum = sum + (aitken ? gfun(w) : ev(w))
         end
         tr = sum/w.N
     end
 end
 
-#=
-A = rand(5000, 5000)
-for i in 1:5000
-    for j in 1:5000
+
+A = rand(8000, 8000)
+for i in 1:8000
+    for j in 1:8000
         A[i, j] = exp(-2 * abs(i - j))
     end
 end
-w = HutchWorkspace(A, skipverify = false)
-@time @show hutch(A)
+
+f(n) = rand(-1.0:2.0:1.0, n)
+w = HutchWorkspace(A, f, N=30, skipverify=true)
+
 @time @show hutch!(w)
+@time @show hutch!(w, aitken=true)
 @time @show tr(inv(A))
-=#
