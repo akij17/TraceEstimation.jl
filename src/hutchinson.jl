@@ -27,7 +27,7 @@ end
 function HutchWorkspace(A; N = 30, skipverify = false)
     randfunc() = rand(-1:2:1, size(A)[1])
     x = randfunc()
-    y = similar(x)
+    y = similar(x, eltype(X) <: Integer ? Float64 : eltype(x))
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
 
@@ -44,7 +44,7 @@ end
 """
 function HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
     x = randfunc()
-    y = similar(x)
+    y = similar(x, eltype(X) <: Integer ? Float64 : eltype(x))
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
 
@@ -72,8 +72,8 @@ function ev(w::HutchWorkspace)
         # Find v0 (Page 179, Numerical Example) -> Corollary 4 in [16]
         v0 = log10(nVal) / log10(dVal)
         # Finally find ev (Page 175)
-        ev = (c0^2)/(p^v0 * c1)
-        return ev
+        ev0 = (c0^2)/(p^v0 * c1)
+        return ev0
     else
         @warn "v0 cannot be calculated. Aitken's process may give inaccurate results!"
         # Aitken's Process to Predict the negative moment
