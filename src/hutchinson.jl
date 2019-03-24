@@ -27,7 +27,7 @@ end
 function HutchWorkspace(A; N = 30, skipverify = false)
     randfunc() = rand(-1:2:1, size(A)[1])
     x = randfunc()
-    y = similar(x, eltype(X) <: Integer ? Float64 : eltype(x))
+    y = similar(x, eltype(x) <: Integer ? Float64 : eltype(x))
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
 
