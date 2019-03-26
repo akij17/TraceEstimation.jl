@@ -5,7 +5,7 @@
 export hutch, hutch!, HutchWorkspace
 
 using LinearAlgebra
-#using CuArrays
+using CuArrays
 
 struct HutchWorkspace
     A::AbstractArray{<:Any, 2}
@@ -92,9 +92,9 @@ function gfun(w::HutchWorkspace)
     mul!(w.x, w.A, w.y)
     c3 = dot(w.y, w.x)
 
-    g1 = c0 - (((c1 - c0)^2) / (c2 - c1))
+    #g1 = c0 - (((c1 - c0)^2) / (c2 - c1))
     g2 = c1 - (((c2 - c0) * (c2 - c1)) / (c3 - c2))
-    g = (g1 + g2)/2
+    #g = (g1 + g2)/2
 end
 
 """
@@ -130,17 +130,25 @@ function hutch!(w::HutchWorkspace; aitken = false)
     end
 end
 
-
+println("Test Case 01: SPD Matrix")
 A = rand(8000, 8000)
 for i in 1:8000
     for j in 1:8000
         A[i, j] = exp(-2 * abs(i - j))
     end
 end
-
 f(n) = rand(-1.0:2.0:1.0, n)
 w = HutchWorkspace(A, f, N=30, skipverify=true)
+println(hutch!(w))
+println(hutch!(w, aitken = true))
+println(tr(inv(A)))
+println()
 
-@time @show hutch!(w)
-@time @show hutch!(w, aitken=true)
-@time @show tr(inv(A))
+println("Test Case 02: CuArray SPD Matrix")
+K = cu(rand(1250, 1250))
+K = K+K'+(1250*I)
+g(n) = cu(rand(-1.0:2.0:1.0, n))
+w1 = HutchWorkspace(K, g, N=10, skipverify=true)
+println(hutch!(w1))
+println(hutch!(w1, aitken = true))
+println(tr(inv(K)))
