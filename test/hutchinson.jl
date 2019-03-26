@@ -1,6 +1,5 @@
 using LinearAlgebra
 using SparseArrays
-using TopOpt
 using TraceEstimation
 using Random
 using Test
