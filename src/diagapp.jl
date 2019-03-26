@@ -6,7 +6,7 @@ using LinearAlgebra
 
 # Extrapolation for c-1 and calculating value of v0
 function v0(A)
-    x = rand(-1:2:1, size(A)[1])
+    x = rand(-1.0:2.0:1.0, size(A)[1])
     y = similar(x)
     
     c0 = dot(x, x)
@@ -47,15 +47,3 @@ function diagapp(A)
     end
     tr 
 end
-
-#= TESTS
-#Creating a random SPD matrix
-n = 10000
-A = rand(n, n)
-A = A + A' + n*I
-#A = [2 -1 0; -1 2 -1; 0 -1 2]
-#Running hutchinson
-@show @time diagapp(A)
-#Actual value
-@show @time tr(inv(A))
-=#
