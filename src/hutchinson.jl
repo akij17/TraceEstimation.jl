@@ -5,7 +5,7 @@
 export hutch, hutch!, HutchWorkspace
 
 using LinearAlgebra
-using CuArrays
+#using CuArrays
 
 struct HutchWorkspace
     A::AbstractArray{<:Any, 2}
@@ -25,8 +25,8 @@ end
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
 function HutchWorkspace(A; N = 30, skipverify = false)
-    randfunc() = rand(-1.0:2.0:1.0, size(A)[1])
-    x = randfunc()
+    randfunc(n) = rand(-1.0:2.0:1.0, n)
+    x = randfunc(size(A)[1])
     y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
