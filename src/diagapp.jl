@@ -7,7 +7,7 @@ using LinearAlgebra
 # Extrapolation for c-1 and calculating value of v0
 function v0(A)
     x = rand(-1.0:2.0:1.0, size(A)[1])
-    y = similar(x)
+    y = similar(x, Float64)
     
     c0 = dot(x, x)
     mul!(y, A, x)
