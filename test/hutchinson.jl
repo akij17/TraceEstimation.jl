@@ -1,5 +1,4 @@
 using LinearAlgebra
-using CuArrays
 using SparseArrays
 using TopOpt
 using TraceEstimation
