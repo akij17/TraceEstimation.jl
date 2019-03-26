@@ -116,9 +116,6 @@ Take a HutchWorkspace object as input, apply hutchinson estimation algorithm and
 of inverse of the matrix. (in-place version of hutch)
 """
 function hutch!(w::HutchWorkspace; aitken = false)
-    if w.skipverify == true
-        @warn "Skipping isposdef verification. This may give unexpected results!"
-    end
     if w.skipverify == true || isposdef(w.A)
         tr = 0.0
         sum = 0.0
@@ -129,28 +126,3 @@ function hutch!(w::HutchWorkspace; aitken = false)
         tr = sum/w.N
     end
 end
-
-#=
-println("Test Case 01: SPD Matrix")
-A = rand(8000, 8000)
-for i in 1:8000
-    for j in 1:8000
-        A[i, j] = exp(-2 * abs(i - j))
-    end
-end
-f(n) = rand(-1.0:2.0:1.0, n)
-w = HutchWorkspace(A, f, N=30, skipverify=true)
-println(hutch!(w))
-println(hutch!(w, aitken = true))
-println(tr(inv(A)))
-println()
-
-println("Test Case 02: CuArray SPD Matrix")
-K = cu(rand(1250, 1250))
-K = K+K'+(1250*I)
-g(n) = cu(rand(-1.0:2.0:1.0, n))
-w1 = HutchWorkspace(K, g, N=10, skipverify=true)
-println(hutch!(w1))
-println(hutch!(w1, aitken = true))
-println(tr(inv(K)))
-=#
