@@ -130,6 +130,7 @@ function hutch!(w::HutchWorkspace; aitken = false)
     end
 end
 
+#=
 println("Test Case 01: SPD Matrix")
 A = rand(8000, 8000)
 for i in 1:8000
@@ -152,3 +153,4 @@ w1 = HutchWorkspace(K, g, N=10, skipverify=true)
 println(hutch!(w1))
 println(hutch!(w1, aitken = true))
 println(tr(inv(K)))
+=#
