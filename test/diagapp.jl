@@ -121,7 +121,7 @@ end
             solver()
             K = solver.globalinfo.K
             K = K+1*I
-            obv = diagapp!(A)
+            obv = diagapp!(K)
             M = Matrix(K)
             acv = tr(inv(M))
             @test percent_error(obv, acv)
