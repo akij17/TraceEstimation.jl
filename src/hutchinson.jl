@@ -1,11 +1,11 @@
 # Hutchinson Trace Estimator for Inverse of Matrix
 # Based on Hutchinson's Stochastic Estimation Proof
 # Values from Extrapolation Methods for Estimating Trace of the Matrix Inverse by P. Fika
+# (This method works for SPD with low condition number)
 
 export hutch, hutch!, HutchWorkspace
 
 using LinearAlgebra
-#using CuArrays
 
 struct HutchWorkspace
     A::AbstractArray{<:Any, 2}
@@ -20,7 +20,7 @@ end
     HutchWorkspace(A; N = 30, skipverify = false)
 
 # Arguments
- - `A` : Symmetric Hermitian Matrix 
+ - `A` : Symmetric Hermitian Matrix with low condition number
  - `N` : Number of iterations (Default: 30)
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
@@ -35,10 +35,11 @@ end
     HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
 
 # Arguments
- - `A` : Symmetric Hermitian Matrix 
+ - `A` : Symmetric Hermitian Matrix with low condition number
  - `randfunc` : Function to generate random values for x
                 Distributed uniformly 
-                (Base: rand(-1:2:1, size(A)[1]))
+                (Base: rand(-1.0:2.0:1.0, size(A)[1]))
+                Example: f(n) = rand(-1.0:2.0:1.0, n)
  - `N` : Number of iterations (Default: 30)
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
@@ -104,13 +105,14 @@ Take a HutchWorkspace object as input, apply hutchinson estimation algorithm and
 of inverse of the matrix. (in-place version also available)
 """
 # Hutchinson trace estimation using extrapolation technique (Page 177)
-function hutch(A; N=30, skipverify = false)
+function hutch(A; N=30, skipverify = false, aitken = false)
     w = HutchWorkspace(A, N = N, skipverify = skipverify)
-    return hutch!(w)
+    return hutch!(w, aitken)
 end
 
 """
-    hutch!(w::HutchWorkspace)
+    hutch!(w::HutchWorkspace; aitken = false)
+    hutch!(A::AbstractArray; N = 30, skipverify = false, aitken = false)
 
 Take a HutchWorkspace object as input, apply hutchinson estimation algorithm and solve for trace 
 of inverse of the matrix. (in-place version of hutch)
@@ -125,4 +127,9 @@ function hutch!(w::HutchWorkspace; aitken = false)
         end
         tr = sum/w.N
     end
+end
+
+function hutch!(A::AbstractArray{<:Any, 2}; N = 30, skipverify = false, aitken = false)
+    w = HutchWorkspace(A, N, skipverify)
+    return hutch!(w, aitken)
 end
