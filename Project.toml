@@ -5,3 +5,4 @@ uuid = "e4811b68-74da-5b95-800f-4c79be0f9694"
 [deps]
 CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae"
 TopOpt = "53a1e1a5-51bb-58a9-8a02-02056cc81109"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
