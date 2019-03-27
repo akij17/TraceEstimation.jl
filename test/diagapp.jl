@@ -15,11 +15,9 @@ function percent_error(obv, acv)
     end
 end
 
-# Most of these tests will focus on Symmetric Hermitian Positive Definite Matrices with low condition value
-# as Hutchinson method works best for those in its original non-hybrid form.
-# For other kind of matrices and/or better accuracy Hybrid Hutchinson method or some other method should be used.
+# Diagonal Approximation method as described by P. Fika works only for SPD matrix with low condition number
 
-@testset "Hutchinson" begin
+@testset "Diagonal Approximation (P.Fika)" begin
     Random.seed!(1234323)
     @testset "Dense SPD Hermitian Matrices" begin
         @testset "a[i,j] = exp(-2 * abS(i - j)) (small size)" begin
@@ -30,8 +28,7 @@ end
                     A[i, j] = exp(-2 * abs(i - j))
                 end
             end
-            w = HutchWorkspace(A, N = 20, skipverify = true)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             acv = tr(inv(A))
             @test percent_error(obv, acv)
         end
@@ -43,8 +40,7 @@ end
                     A[i, j] = exp(-2 * abs(i - j))
                 end
             end
-            w = HutchWorkspace(A, N = 20, skipverify = true)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             acv = tr(inv(A))
             @test percent_error(obv, acv)
         end
@@ -56,8 +52,7 @@ end
                 A = rand(810, 810)
                 A = A + A' + 30I
             end
-            w = HutchWorkspace(A, N = 30, skipverify = true)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             acv = tr(inv(A))
             @test percent_error(obv, acv)
         end
@@ -69,8 +64,7 @@ end
                 A = rand(810, 810)
                 A = A + A' + 30I
             end
-            w = HutchWorkspace(A, N = 60, skipverify = true)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             acv = tr(inv(A))
             @test percent_error(obv, acv)
         end
@@ -82,8 +76,7 @@ end
                 A = rand(8100, 8100)
                 A = A + A' + 300I
             end
-            w = HutchWorkspace(A, N = 30, skipverify = true)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             acv = tr(inv(A))
             @test percent_error(obv, acv)
         end
@@ -97,8 +90,7 @@ end
                 A = Symmetric(sprand(1000, 1000, 0.7))
                 A = A+50*I
             end
-            w = HutchWorkspace(A, N = 30, skipverify = true)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             A = Matrix(A)
             acv = tr(inv(A))
             @test percent_error(obv, acv)
@@ -113,8 +105,7 @@ end
             solver.vars[rand(1:n, n÷2)] .= 0
             solver()
             K = solver.globalinfo.K
-            w = HutchWorkspace(K)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             M = Matrix(K)
             acv = tr(inv(M))
             @test percent_error(obv, acv)
@@ -130,8 +121,7 @@ end
             solver()
             K = solver.globalinfo.K
             K = K+1*I
-            w = HutchWorkspace(K)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             M = Matrix(K)
             acv = tr(inv(M))
             @test percent_error(obv, acv)
@@ -142,12 +132,11 @@ end
             println("Executing Test 09: CuArray Small Size")
             A = cu(rand(400,400))
             A = A+A'+40*I
-            f(n) = cu(rand(-1.0:2.0:1.0, n))
-            w = HutchWorkspace(A, f)
-            obv = hutch!(w)
+            obv = diagapp!(A)
             M = Matrix(A)
             acv = tr(inv(M))
             @test percent_error(obv, acv)
         end
     end
 end
+

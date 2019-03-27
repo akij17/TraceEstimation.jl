@@ -1,7 +1,7 @@
 # Diagonal Approximation for trace of inverse of matrix
 # Values from Extrapolation Methods for Estimating Trace of the Matrix Inverse by P. Fika
 
-export diagapp
+export diagapp, diagapp!
 
 using LinearAlgebra
 
