@@ -32,9 +32,7 @@ end
             end
             w = HutchWorkspace(A, N = 20, skipverify = true)
             obv = hutch!(w)
-            println("Hutchinson Estimation Complete")
             acv = tr(inv(A))
-            println("tr(inv( )) Complete")
             @test percent_error(obv, acv)
         end
         @testset "a[i,j] = exp(-2 * abS(i - j)) (large size)" begin
@@ -47,9 +45,7 @@ end
             end
             w = HutchWorkspace(A, N = 20, skipverify = true)
             obv = hutch!(w)
-            println("Hutchinson Estimation Complete")
             acv = tr(inv(A))
-            println("tr(inv( )) Complete")
             @test percent_error(obv, acv)
         end
         @testset "Random generated SPD matrix (small size) (N=30)" begin
@@ -77,9 +73,7 @@ end
             end
             w = HutchWorkspace(A, N = 60, skipverify = true)
             obv = hutch!(w)
-            println("Hutchinson Estimation Complete")
             acv = tr(inv(A))
-            println("tr(inv( )) Complete")
             @test percent_error(obv, acv)
         end
         @testset "Random generated SPD matrix (large size) (N=30)" begin
@@ -92,9 +86,7 @@ end
             end
             w = HutchWorkspace(A, N = 30, skipverify = true)
             obv = hutch!(w)
-            println("Hutchinson Estimation Complete")
             acv = tr(inv(A))
-            println("tr(inv( )) Complete")
             @test percent_error(obv, acv)
         end
     end
@@ -109,10 +101,8 @@ end
             end
             w = HutchWorkspace(A, N = 30, skipverify = true)
             obv = hutch!(w)
-            println("Hutchinson Estimation Complete")
             A = Matrix(A)
             acv = tr(inv(A))
-            println("tr(inv( )) Complete")
             @test percent_error(obv, acv)
         end
         @testset "TopOpt Test (Large Condition Number)" begin
