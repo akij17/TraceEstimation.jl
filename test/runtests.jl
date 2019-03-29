@@ -1,5 +1,11 @@
 using TraceEstimation
 
 # Hutchinson
-include("hutchinson.jl")
-include("diagapp.jl")
+@testset "hutchinson.jl" begin
+    include("hutchinson.jl")
+end
+
+#Diagonal Approximation
+@testset "diagapp.jl" begin
+    include("diagapp.jl")
+end

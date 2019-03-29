@@ -6,17 +6,7 @@ using SparseArrays
 using TopOpt
 using TraceEstimation
 
-function isapprox(obv, acv, rtol=10)
-    e = (abs(obv-acv) / acv) * 100
-    if(e < 10)
-        return true
-    else
-        return false
-    end
-end
-
-# Diagonal Approximation method as described by P. Fika works only for SPD matrix with low condition number
-
+# Diagonal Approximation method as described by P. Fika works only for SPD matrix with low condition number (< 500)
 @testset "Diagonal Approximation (P.Fika)" begin
     Random.seed!(1234323)
     @testset "Dense SPD Hermitian Matrices" begin
@@ -101,7 +91,7 @@ end
                 A = Symmetric(sprand(1000, 1000, 0.7))
                 A = A+50*I
             end
-            obv = diagapp!(A)
+            obv = diagapp(A)
             A = Matrix(A)
             acv = tr(inv(A))
             @test isapprox(obv, acv, rtol=10)
