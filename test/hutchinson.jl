@@ -37,9 +37,9 @@ end
         end
         @testset "a[i,j] = exp(-2 * abS(i - j)) (large size)" begin
             println("Executing Test 02: Dense SPD Large Size")
-            A = rand(8100, 8100)
-            for i in 1:8100
-                for j in 1:8100
+            A = rand(5100, 5100)
+            for i in 1:5100
+                for j in 1:5100
                     A[i, j] = exp(-2 * abs(i - j))
                 end
             end
@@ -81,6 +81,18 @@ end
             while isposdef(A) == false
                 A = rand(8100, 8100)
                 A = A + A' + 300I
+            end
+            w = HutchWorkspace(A, N = 30, skipverify = true)
+            obv = hutch!(w)
+            acv = tr(inv(A))
+            @test percent_error(obv, acv)
+        end
+        @testset "Random generated SPD matrix (large size, large condition number)" begin
+            println("Executing Test 05.5: Random SPD Large Size Larger Condition")
+            A = Symmetric(rand(5005, 5005))
+            A = A + 10I
+            while isposdef(A) == false
+                A = A + 10I
             end
             w = HutchWorkspace(A, N = 30, skipverify = true)
             obv = hutch!(w)

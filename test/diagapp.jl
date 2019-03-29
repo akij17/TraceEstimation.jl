@@ -81,6 +81,17 @@ end
             @test percent_error(obv, acv)
         end
     end
+    @testset "Random generated SPD matrix (large size, large condition number)" begin
+            println("Executing Test 05.5: Random SPD Large Size Larger Condition")
+            A = Symmetric(rand(5005, 5005))
+            A = A + 10I
+            while isposdef(A) == false
+                A = A + 10I
+            end
+            obv = diagapp!(A)
+            acv = tr(inv(A))
+            @test percent_error(obv, acv)
+        end
     @testset "Sparse SPD Hermitian Matrices" begin
         @testset "Random generated Sparse SPD (small size)" begin
             println("Executing Test 06: Sparse Random SPD Small Size")
@@ -105,7 +116,7 @@ end
             solver.vars[rand(1:n, n÷2)] .= 0
             solver()
             K = solver.globalinfo.K
-            obv = diagapp!(A)
+            obv = diagapp!(K)
             M = Matrix(K)
             acv = tr(inv(M))
             @test percent_error(obv, acv)
