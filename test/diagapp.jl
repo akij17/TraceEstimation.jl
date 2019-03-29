@@ -141,7 +141,7 @@ using TraceEstimation
             function mycurand(range::StepRange{<:Any, <:Any}, size::Int64)
                 cu(rand(range, size))
             end            
-            obv = diagapp(A, mycurand)
+            obv = diagapp(A, randfunc=mycurand)
             M = Matrix(A)
             acv = tr(inv(M))
             @test isapprox(obv, acv, rtol=10)
