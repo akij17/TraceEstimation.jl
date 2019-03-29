@@ -65,18 +65,3 @@ function diagapp(A)
     end
     tr
 end
-
-using TopOpt
-s = (40, 10) # increase to increase the matrix size
-xmin = 0.9 # decrease to increase the condition number
-problem = HalfMBB(Val{:Linear}, s, (1.0, 1.0), 1.0, 0.3, 1.0)
-solver = FEASolver(Displacement, Direct, problem, xmin = xmin)
-n = length(solver.vars) 
-solver.vars[rand(1:n, n÷2)] .= 0
-solver()
-K = solver.globalinfo.K
-K = K + 1*I
-@show obv = diagapp(K)
-M = Matrix(K)
-@show acv = tr(inv(M))
-@show isapprox(obv, acv, rtol=10.0)
