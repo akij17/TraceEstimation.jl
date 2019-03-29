@@ -5,22 +5,23 @@ export diagapp
 
 using LinearAlgebra
 
-struct Diagappspace{T, TM <: AbstractMatrix{T}, TV <: AbstractVector{T}}
+struct Diagappspace{T, TM <: AbstractMatrix{T}, TV <: AbstractVector{T}, F<:Function}
     A::TM
     x::TV
     y::TV
+    randfunc::F
 end
 
-function Diagappspace(A::AbstractMatrix)
-    x = rand(eltype(A) <: Integer ? Float64 : eltype(A), size(A, 1))
+function Diagappspace(A::AbstractMatrix, randfunc::Function)
+    x = randfunc(eltype(A) <: Integer ? Float64 : eltype(A), size(A, 1))
     y = similar(x)
-    return Diagappspace(A, x, y)
+    return Diagappspace(A, x, y, randfunc)
 end
 
 # Extrapolation for c-1 and calculating value of v0
 function v0(w::Diagappspace)
 
-    copyto!(w.x, rand(-1:2:1, size(w.A, 1)))
+    copyto!(w.x, w.randfunc(-1:2:1, size(w.A, 1)))
 
     c0 = dot(w.x, w.x)
     mul!(w.y, w.A, w.x)
@@ -49,16 +50,18 @@ end
 # Calculating Diagonal Approximation for Matrix Inverse
 # This works a SPD Matrix with low condition number 
 """
-    diagapp(A::AbstractMatrix)
+    diagapp(A::AbstractMatrix; randfunc=Base.rand)
 
 Diagonal Approximation algorithm for inverse of matrix.
 # Arguments
  - `A` : Symmetric Positive Definite Matrix with Low Condtion Number (k < 500)
+ - `randfunc` : Random function for the particular type of matrix A
+                (An example can be found in test/diagapp.jl)
 """
-function diagapp(A)
+function diagapp(A; randfunc::Function=Base.rand)
     tr = zero(eltype(A))
     s = size(A, 1)
-    w = Diagappspace(A)
+    w = Diagappspace(A, randfunc)
     v = v0(w)
     for i in 1:s
         tr = tr + dfun(w.A, i, v)

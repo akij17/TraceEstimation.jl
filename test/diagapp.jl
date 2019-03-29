@@ -135,7 +135,13 @@ using TraceEstimation
             println("Executing Test 09: CuArray Small Size")
             A = cu(rand(400,400))
             A = A+A'+40*I
-            obv = diagapp(A)
+            function mycurand(type::Type, size::Int64)
+                cu(rand(type, size))
+            end
+            function mycurand(range::StepRange{<:Any, <:Any}, size::Int64)
+                cu(rand(range, size))
+            end            
+            obv = diagapp(A, mycurand)
             M = Matrix(A)
             acv = tr(inv(M))
             @test isapprox(obv, acv, rtol=10)
