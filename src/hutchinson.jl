@@ -7,11 +7,11 @@ export hutch, hutch!, HutchWorkspace
 
 using LinearAlgebra
 
-struct HutchWorkspace
-    A::AbstractArray{<:Any, 2}
-    randfunc::Function
-    x::AbstractArray{<:Any, 1}
-    y::AbstractArray{<:Any, 1}
+struct HutchWorkspace{T, TM <: AbstractMatrix{T}, F <: Function, TV <: AbstractVector{T}}
+    A::TM
+    randfunc::F
+    x::TV
+    y::TV
     N::Int64
     skipverify::Bool
 end
@@ -20,13 +20,13 @@ end
     HutchWorkspace(A; N = 30, skipverify = false)
 
 # Arguments
- - `A` : Symmetric Hermitian Matrix with low condition number
+ - `A` : Symmetric Positive Definite Matrix with Low Condtion Number (k < 500)
  - `N` : Number of iterations (Default: 30)
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
 function HutchWorkspace(A; N = 30, skipverify = false)
-    randfunc(n) = rand(-1.0:2.0:1.0, n)
-    x = randfunc(size(A)[1])
+    randfunc(n) = rand(-1:2:1, n)
+    x = rand(eltype(A) <: Integer ? Float64 : eltype(A), size(A,1))
     y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
@@ -35,7 +35,7 @@ end
     HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
 
 # Arguments
- - `A` : Symmetric Hermitian Matrix with low condition number
+ - `A` : Symmetric Positive Definite Matrix with Low Condtion Number (k < 500)
  - `randfunc` : Function to generate random values for x
                 Distributed uniformly 
                 (Base: rand(-1.0:2.0:1.0, size(A)[1]))
@@ -44,7 +44,7 @@ end
  - `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
 function HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
-    x = randfunc(size(A)[1])
+    x = randfunc(size(A,1))
     y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
@@ -52,7 +52,7 @@ end
 # Calculating the moments and extrapolating c-1 
 function ev(w::HutchWorkspace)
     # Create new random values for x
-    copyto!(w.x, w.randfunc(size(w.A)[1]))
+    copyto!(w.x, w.randfunc(size(w.A, 1)))
 
     # Find c(r) = x' * A^r * x = dot(x', A^r * x)
     c0 = dot(w.x, w.x)
@@ -84,7 +84,7 @@ end
 # Aitken's Process to Predict the negative moment
 # (Page 176, eq 4)        
 function gfun(w::HutchWorkspace)
-    copyto!(w.x, w.randfunc(size(w.A)[1]))
+    copyto!(w.x, w.randfunc(size(w.A, 1)))
 
     c0 = dot(w.x, w.x)
     mul!(w.y, w.A, w.x)
@@ -119,8 +119,8 @@ of inverse of the matrix. (in-place version of hutch)
 """
 function hutch!(w::HutchWorkspace; aitken = false)
     if w.skipverify == true || isposdef(w.A)
-        tr = 0.0
-        sum = 0.0
+        tr = zero(eltype(w.A))
+        sum = zero(eltype(w.A))
         for i in 1:w.N
             # if aitken == true => use aitken process to predict the terms via gfun
             sum = sum + (aitken ? gfun(w) : ev(w))

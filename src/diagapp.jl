@@ -1,24 +1,26 @@
 # Diagonal Approximation for trace of inverse of matrix
 # Values from Extrapolation Methods for Estimating Trace of the Matrix Inverse by P. Fika
 
-export diagapp, diagapp!
+export diagapp
 
 using LinearAlgebra
 
-struct diagappspace
-    A::AbstractArray{<:Any, 2}
-    x::AbstractArray{<:Any, 1}
-    y::AbstractArray{<:Any, 1}
+struct Diagappspace{T, TM <: AbstractMatrix{T}, TV <: AbstractVector{T}}
+    A::TM
+    x::TV
+    y::TV
 end
 
-function diagappspace(A::AbstractArray{<:Any, 2})
-    x = rand(-1.0:2.0:1.0, size(A)[1])
-    y = similar(x, Float64)
-    return diagappspace(A, x, y)
+function Diagappspace(A::AbstractMatrix)
+    x = rand(eltype(A) <: Integer ? Float64 : eltype(A), size(A, 1))
+    y = similar(x)
+    return Diagappspace(A, x, y)
 end
 
 # Extrapolation for c-1 and calculating value of v0
-function v0(w::diagappspace)
+function v0(w::Diagappspace)
+
+    copyto!(w.x, rand(-1:2:1, size(w.A, 1)))
 
     c0 = dot(w.x, w.x)
     mul!(w.y, w.A, w.x)
@@ -34,8 +36,8 @@ end
 
 # Calculating the Approximation for ith value of inverse diagonal
 function dfun(A, i, v)
-    isum = 0.0
-    s = size(A)[1]
+    isum = zero(eltype(A))
+    s = size(A, 1)
     for k in 1:s
         isum = isum + A[k, i]^2
     end
@@ -44,28 +46,37 @@ function dfun(A, i, v)
     d = 1 / (p^v * A[i, i])
 end
 
-# Calculating Diagonal Approximation for Inverse of Matrix
+# Calculating Diagonal Approximation for Matrix Inverse
+# This works a SPD Matrix with low condition number 
 """
-    diagapp(A::AbstractArray)
+    diagapp(A::AbstractMatrix)
 
-Diagonal Approximation algorithm for inverse of matrix (SPD low condition number).
+Diagonal Approximation algorithm for inverse of matrix.
+# Arguments
+ - `A` : Symmetric Positive Definite Matrix with Low Condtion Number (k < 500)
 """
 function diagapp(A)
-    return diagapp!(A) 
-end
-
-"""
-    diagapp!(A::AbstractArray)
-
-Diagonal Approximation algorithm for inverse of matrix (SPD low condition number).
-"""
-function diagapp!(A)
-    tr = 0.0
-    s = size(A)[1]
-    w = diagappspace(A)
+    tr = zero(eltype(A))
+    s = size(A, 1)
+    w = Diagappspace(A)
     v = v0(w)
     for i in 1:s
         tr = tr + dfun(w.A, i, v)
     end
     tr
 end
+
+using TopOpt
+s = (40, 10) # increase to increase the matrix size
+xmin = 0.9 # decrease to increase the condition number
+problem = HalfMBB(Val{:Linear}, s, (1.0, 1.0), 1.0, 0.3, 1.0)
+solver = FEASolver(Displacement, Direct, problem, xmin = xmin)
+n = length(solver.vars) 
+solver.vars[rand(1:n, n÷2)] .= 0
+solver()
+K = solver.globalinfo.K
+K = K + 1*I
+@show obv = diagapp(K)
+M = Matrix(K)
+@show acv = tr(inv(M))
+@show isapprox(obv, acv, rtol=10.0)
