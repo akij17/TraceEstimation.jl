@@ -1,3 +1,5 @@
+using Base
+using Test
 using TraceEstimation
 
 # Hutchinson

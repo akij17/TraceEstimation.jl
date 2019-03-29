@@ -18,33 +18,25 @@ end
 
 """
     HutchWorkspace(A; N = 30, skipverify = false)
+    HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
 
 # Arguments
- - `A` : Symmetric Positive Definite Matrix with Low Condtion Number (k < 500)
- - `N` : Number of iterations (Default: 30)
- - `skipverify` : If false, it will check isposdef(A) (Default: false)
+- `A` : Symmetric Positive Definite Matrix with Low Condtion Number (k < 500)
+- `randfunc` : Function to generate random values for x distributed uniformly 
+                (Base: rand(-1.0:2.0:1.0, size(A,1))
+                 Example: f(n) = rand(-1.0:2.0:1.0, n)
+- `N` : Number of iterations (Default: 30)
+- `skipverify` : If false, it will check isposdef(A) (Default: false)
 """
-function HutchWorkspace(A; N = 30, skipverify = false)
-    randfunc(n) = rand(-1:2:1, n)
-    x = rand(eltype(A) <: Integer ? Float64 : eltype(A), size(A,1))
+function HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
+    x = randfunc(size(A,1))
     y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
 
-"""
-    HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
-
-# Arguments
- - `A` : Symmetric Positive Definite Matrix with Low Condtion Number (k < 500)
- - `randfunc` : Function to generate random values for x
-                Distributed uniformly 
-                (Base: rand(-1.0:2.0:1.0, size(A)[1]))
-                Example: f(n) = rand(-1.0:2.0:1.0, n)
- - `N` : Number of iterations (Default: 30)
- - `skipverify` : If false, it will check isposdef(A) (Default: false)
-"""
-function HutchWorkspace(A, randfunc::Function; N = 30, skipverify = false)
-    x = randfunc(size(A,1))
+function HutchWorkspace(A; N = 30, skipverify = false)
+    randfunc(n) = rand(-1:2:1, n)
+    x = rand(eltype(A) <: Integer ? Float64 : eltype(A), size(A,1))
     y = similar(x)
     return HutchWorkspace(A, randfunc, x, y, N, skipverify)
 end
