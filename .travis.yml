@@ -1,0 +1,11 @@
+language: julia
+os:
+    - linux
+julia:
+    - 1.0
+    - nightly
+notifications:
+    email: false
+after success:
+    - julia --project=coverage/ -e `using Pkg; Pkg.instantiate()`
+    - julia --project=coverage/ coverage/coverage.jl
