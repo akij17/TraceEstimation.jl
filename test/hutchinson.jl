@@ -3,7 +3,7 @@ using Random
 using LinearAlgebra
 using CuArrays
 using SparseArrays
-using TopOpt
+using JLD2, FileIO
 using TraceEstimation
 
 # Most of these tests will focus on Symmetric Positive Definite Matrices with low condition number (< 500)
@@ -126,6 +126,8 @@ using TraceEstimation
         =#
         @testset "TopOpt Test (Modified Condition Number)" begin
             println("Executing Test 08: TopOpt Modified Condition Number")
+            println("Loading from JLD2 file")
+            #=
             s = (40, 10) # increase to increase the matrix size
             xmin = 0.9 # decrease to increase the condition number
             problem = HalfMBB(Val{:Linear}, s, (1.0, 1.0), 1.0, 0.3, 1.0)
@@ -135,6 +137,8 @@ using TraceEstimation
             solver()
             K = solver.globalinfo.K
             K = K+1*I
+            =#
+            @load "topoptfile.jld2" K
             w = HutchWorkspace(K)
             obv = hutch!(w)
             M = Matrix(K)
