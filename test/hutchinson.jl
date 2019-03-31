@@ -1,7 +1,6 @@
 using Test
 using Random
 using LinearAlgebra
-using CuArrays
 using SparseArrays
 using JLD2, FileIO
 using TraceEstimation
@@ -146,6 +145,7 @@ using TraceEstimation
             @test isapprox(obv, acv, rtol=10)
         end
     end
+    #=
     @testset "CuArrays Test" begin
         @testset "Dense Random CuArray" begin
             println("Executing Test 09: CuArray Small Size")
@@ -158,5 +158,5 @@ using TraceEstimation
             acv = tr(inv(M))
             @test isapprox(obv, acv, rtol=10)
         end
-    end
+    end =#
 end
