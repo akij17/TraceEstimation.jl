@@ -3,6 +3,8 @@
 using LinearAlgebra
 include("lanczos.jl")
 
+export SLQWorkspace, slq
+
 # predefined function
 invfun(x) = 1/x
 
@@ -43,33 +45,40 @@ function SLQWorkspace(A, randfunc::Function; f::Function=invfun, ctol=0.1, m = 5
 end
 
 """
-    slq(w::SLQWorkspace)
+    slq(w::SLQWorkspace; skipverify = false)
 
-Takes a SLQWorkspace object `w` and returns tr(f(w.A))
+Takes a SLQWorkspace object `w` and returns tr(f(w.A)).
+# Arguments
+ - w : SLQWorkspace (check example)
+ - skipverify : Pass true only if you are sure matrix is SPD
 
 Example:
 w = SLQWorkspace(A, m = 20, nv = 10)
 trace = slq(w)
 """
-function slq(w::SLQWorkspace)
-    tr = zero(eltype(w.A))
-    for i in 1:w.nᵥ
-        v₀ = w.randfunc(size(w.A, 1))
-        v₀ = v₀/norm(v₀)
-        lw = LanczosWorkspace(A, v₀, w.m)
-        R = lanczos(lw)
-        Tvec = eigvecs(R.T)
-        Tval = eigvals(R.T)
-        for j in 1:w.m
-            τ = Tvec[1, j]
-            tr = tr + τ^2 * 1/Tval[j]
+function slq(w::SLQWorkspace; skipverify = false)
+    if skipverify || isposdef(w.A)
+        tr = zero(eltype(w.A))
+        for i in 1:w.nᵥ
+            v₀ = w.randfunc(size(w.A, 1))
+            v₀ = v₀/norm(v₀)
+            lw = LanczosWorkspace(A, v₀, w.m)
+            R = lanczos(lw)
+            Tvec = eigvecs(R.T)
+            Tval = eigvals(R.T)
+            for j in 1:w.m
+                τ = Tvec[1, j]
+                tr = tr + τ^2 * 1/Tval[j]
+            end
+            if isapprox(tr, w.result, rtol = w.ctol)
+                @show i
+                w.nᵥ = i
+                break
+            end
+            w.result = tr
         end
-        if isapprox(tr, w.result, rtol = w.ctol)
-            @show i
-            w.nᵥ = i
-            break
-        end
-        w.result = tr
+        tr = size(A,1)/w.nᵥ * tr
+    else
+        println("Matrix is not positive definite")
     end
-    tr = size(A,1)/w.nᵥ * tr
 end
