@@ -62,7 +62,7 @@ function slq(w::SLQWorkspace; skipverify = false)
         for i in 1:w.nᵥ
             v₀ = w.randfunc(size(w.A, 1))
             v₀ = v₀/norm(v₀)
-            lw = LanczosWorkspace(A, v₀, w.m)
+            lw = LanczosWorkspace(w.A, v₀, w.m)
             R = lanczos(lw)
             Tvec = eigvecs(R.T)
             Tval = eigvals(R.T)
