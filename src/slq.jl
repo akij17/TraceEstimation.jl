@@ -76,7 +76,7 @@ function slq(w::SLQWorkspace; skipverify = false)
             end
             w.result = tr
         end
-        tr = size(A,1)/w.nᵥ * tr
+        tr = size(w.A,1)/w.nᵥ * tr
     else
         println("Matrix is not positive definite")
     end
