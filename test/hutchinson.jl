@@ -66,10 +66,10 @@ using TraceEstimation
         end
         @testset "Random generated SPD matrix (large size) (N=30)" begin
             println("Executing Test 05: Random SPD Large Size")
-            A = rand(8100, 8100)
+            A = rand(5100, 5100)
             A = A + A' + 300I
             while isposdef(A) == false
-                A = rand(8100, 8100)
+                A = rand(5100, 5100)
                 A = A + A' + 300I
             end
             w = HutchWorkspace(A, N = 30, skipverify = true)

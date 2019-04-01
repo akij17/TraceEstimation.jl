@@ -8,7 +8,7 @@ using TraceEstimation
 # Most of these tests will focus on Symmetric Positive Definite Matrices with low condition number (< 500)
 # as SLQ works best for SPD matrices with low condition number
 # A hybrid for larger condition and semi-positive definite will also be availabe
-
+sqrfun(x) = x^2
 @testset "SLQ" begin
     Random.seed!(1234323)
     @testset "Dense SPD Matrices" begin
@@ -33,7 +33,6 @@ using TraceEstimation
                     A[i, j] = exp(-2 * abs(i - j))
                 end
             end
-            sqrfun(x) = x^2
             w = SLQWorkspace(A, f = sqrfun, m = 20, ctol = 0.2)
             obv = slq(w)
             acv = tr(A^2)

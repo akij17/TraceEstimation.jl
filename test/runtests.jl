@@ -11,3 +11,8 @@ end
 @testset "diagapp.jl" begin
     include("diagapp.jl")
 end
+
+# SLQ
+@testset "slq.jl" begin
+    include("slq.jl")
+end

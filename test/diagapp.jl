@@ -23,9 +23,9 @@ using TraceEstimation
         end
         @testset "a[i,j] = exp(-2 * abS(i - j)) (large size)" begin
             println("Executing Test 02: Dense SPD Large Size")
-            A = rand(8100, 8100)
-            for i in 1:8100
-                for j in 1:8100
+            A = rand(5100, 5100)
+            for i in 1:5100
+                for j in 1:5100
                     A[i, j] = exp(-2 * abs(i - j))
                 end
             end
@@ -59,10 +59,10 @@ using TraceEstimation
         end
         @testset "Random generated SPD matrix (large size) (N=30)" begin
             println("Executing Test 05: Random SPD Large Size")
-            A = rand(8100, 8100)
+            A = rand(5100, 5100)
             A = A + A' + 300I
             while isposdef(A) == false
-                A = rand(8100, 8100)
+                A = rand(5100, 5100)
                 A = A + A' + 300I
             end
             obv = diagapp(A)
@@ -144,7 +144,7 @@ using TraceEstimation
             end
             function mycurand(range::StepRange{<:Any, <:Any}, size::Int64)
                 cu(rand(range, size))
-            end            
+            end
             obv = diagapp(A, randfunc=mycurand)
             M = Matrix(A)
             acv = tr(inv(M))
@@ -152,4 +152,3 @@ using TraceEstimation
         end
     end =#
 end
-
