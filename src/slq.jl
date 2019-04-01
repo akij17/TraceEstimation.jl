@@ -68,10 +68,9 @@ function slq(w::SLQWorkspace; skipverify = false)
             Tval = eigvals(R.T)
             for j in 1:w.m
                 τ = Tvec[1, j]
-                tr = tr + τ^2 * 1/Tval[j]
+                tr = tr + τ^2 * w.f(Tval[j])
             end
             if isapprox(tr, w.result, rtol = w.ctol)
-                @show i
                 w.nᵥ = i
                 break
             end
