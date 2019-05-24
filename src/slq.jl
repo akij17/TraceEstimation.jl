@@ -108,9 +108,12 @@ A and an analytic function fn.
             λₘ and λ₁ of A. By default fn = inv
 - `rfn` : Random number generator. Should be able to take ranges. By default
             rfn = Base.rand, example, Base.rand.(Ref(-1:2:1, n))
-- `ctol` : SLQ Convergence Tolerance value. By default ctol = 0.1
-- `eps` : Error bound for lanczos steps calculation. By default eps = 0.5
-- `mtol` : Tolerance for eigenvalue Convergence. By default mtol = 0.01
+- `ctol` : SLQ Convergence Tolerance value. Decrease this for higher precision.
+            By default ctol = 0.1
+- `eps` : Error bound for lanczos steps calculation. Decrease this for higher
+            accuracy. By default eps = 0.5
+- `mtol` : Tolerance for eigenvalue Convergence. Decrease this for precision.
+            By default mtol = 0.01
 """
 function slq(w::SLQWorkspace; skipverify = false)
     if skipverify || isposdef(w.A)
@@ -127,7 +130,7 @@ function slq(w::SLQWorkspace; skipverify = false)
                 tr = tr + τ^2 * fn(Θ[j])
             end
             if isapprox(result, tr, rtol = ctol)
-                @show w.nᵥ = i
+                w.nᵥ = i
                 break
             end
             result = tr
@@ -140,7 +143,7 @@ function slq(w::SLQWorkspace; skipverify = false)
 end
 
 function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
-    rfn::Function = Base.rand, ctol = 0.1, eps = ϵ, mtol = tol)
+    rfn::Function = Base.rand, ctol = 0.1, eps = 0.00000001, mtol = 0.0000001)
 
     # Estimate eigmax and eigmin for SLQ bounds
     mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
@@ -149,8 +152,8 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     w.v .= w.v ./ norm(w.v)
     lcz(w)
     println(typeof(w.T))
-    λₘ = eigmax(w.T)
-    λ₁ = eigmin(w.T)
+    @show λₘ = eigmax(w.T)
+    @show λ₁ = eigmin(w.T)
 
     if λ₁ < 1 && λₘ > 1
         @warn "Eigenvalues cross zero. Functions like log may not give
@@ -163,10 +166,22 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     mₚ = fn(λ₁)
     ρ = (sqrt(κ) + 1)/(sqrt(κ) - 1)
     K = ((λₘ - λ₁) * (sqrt(κ) - 1)^2 * Mₚ)/(sqrt(κ) * mₚ)
-    @show mval = Int64(ceil((sqrt(κ)/4) * log(K/eps)))
-    @show nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
+    mval = Int64(ceil((sqrt(κ)/4) * log(K/eps)))
+    if mval < 10
+        @warn "Low lanczos step value. Try decreasing eps and mtol for better
+        accuracy."
+        mval = 10
+    end
+    nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
 
     # Re-construct SLQWorkspace
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval, nv = nval, ctol = ctol)
     slq(w, skipverify = skipverify)
+end
+
+A = rand(610, 610)
+for i in 1:610
+    for j in 1:610
+        A[i, j] = exp(-2 * abs(i - j))
+    end
 end
