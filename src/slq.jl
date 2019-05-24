@@ -3,6 +3,8 @@
 # "Fast estimation of tr(F(A)) via stochastic lanczos quadrature, 2016."
 # URL: http://www-users.cs.umn.edu/~saad/PDF/ys-2016-04.pdf.
 
+export SLQWorkspace, slq
+
 using LinearAlgebra
 using Parameters
 
