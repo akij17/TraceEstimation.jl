@@ -55,8 +55,8 @@ function SLQWorkspace(A; fn::Function=invfun, rfn::Function=Base.rand,
     n = size(A, 1)
     v = similar(A, n)
     v₀ = similar(v)
-    α = similar(A, m)
-    β = similar(A, m-1)
+    α = Vector{elt}(undef, m)
+    β = Vector{elt}(undef, m-1)
     ω = similar(A, n)
     Y = similar(A, m, m)
     Θ = similar(A, m)
@@ -86,7 +86,8 @@ function lcz(w::SLQWorkspace)
             β[i] = β₀
         end
 
-        copy!(v₀, v)
+        #copy!(v₀, v)
+        v₀ .= v
         v .= ω ./ β₀
         @pack! w = A, v, ω, v₀, α, β, m, T
     end
@@ -147,6 +148,7 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     rademacherDistribution!(w.v, w.rfn, eltype(w.A))
     w.v .= w.v ./ norm(w.v)
     lcz(w)
+    println(typeof(w.T))
     λₘ = eigmax(w.T)
     λ₁ = eigmin(w.T)
 
@@ -168,19 +170,9 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval, nv = nval, ctol = ctol)
     slq(w, skipverify = skipverify)
 end
-#=
-global X = (rand(5095,5095))
-X = X + X'
-while !isposdef(X)
-    global X
-    X = X + 10I
-end
 
-sqrtfun(x) = sqrt(x)
-logfun(x) = log(x)
-#w = SLQWorkspace(X, fn = logfun)
-#@time nothing; @time slq(w, skipverify = true)
+using SparseArrays
+using MatrixDepot
 
-println(slq(X))
-println(tr(inv(X)))
-=#
+B = matrixdepot("poisson", 500)
+slq(B, fn = log)
