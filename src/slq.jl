@@ -24,8 +24,8 @@ mutable struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
     nᵥ::I
     ctol::R
     T::TS
-    α::TV
-    β::TV
+    α
+    β
     ω::TV
     Y::TM2
     Θ::TV
@@ -170,9 +170,3 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval, nv = nval, ctol = ctol)
     slq(w, skipverify = skipverify)
 end
-
-using SparseArrays
-using MatrixDepot
-
-B = matrixdepot("poisson", 500)
-slq(B, fn = log)
