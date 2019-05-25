@@ -86,8 +86,7 @@ function lcz(w::SLQWorkspace)
             β[i] = β₀
         end
 
-        #copy!(v₀, v)
-        v₀ .= v
+        copy!(v₀, v)
         v .= ω ./ β₀
         @pack! w = A, v, ω, v₀, α, β, m, T
     end
@@ -111,7 +110,7 @@ A and an analytic function fn.
 - `ctol` : SLQ Convergence Tolerance value. Decrease this for higher precision.
             By default ctol = 0.1
 - `eps` : Error bound for lanczos steps calculation. Decrease this for higher
-            accuracy. By default eps = 0.5
+            accuracy. By default eps = 0.05
 - `mtol` : Tolerance for eigenvalue Convergence. Decrease this for precision.
             By default mtol = 0.01
 """
@@ -143,7 +142,7 @@ function slq(w::SLQWorkspace; skipverify = false)
 end
 
 function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
-    rfn::Function = Base.rand, ctol = 0.1, eps = 0.00000001, mtol = 0.0000001)
+    rfn::Function = Base.rand, ctol = 0.1, eps = ϵ, mtol = tol)
 
     # Estimate eigmax and eigmin for SLQ bounds
     mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
@@ -151,9 +150,8 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     rademacherDistribution!(w.v, w.rfn, eltype(w.A))
     w.v .= w.v ./ norm(w.v)
     lcz(w)
-    println(typeof(w.T))
-    @show λₘ = eigmax(w.T)
-    @show λ₁ = eigmin(w.T)
+    λₘ = eigmax(w.T)
+    λ₁ = eigmin(w.T)
 
     if λ₁ < 1 && λₘ > 1
         @warn "Eigenvalues cross zero. Functions like log may not give
@@ -177,11 +175,4 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     # Re-construct SLQWorkspace
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval, nv = nval, ctol = ctol)
     slq(w, skipverify = skipverify)
-end
-
-A = rand(610, 610)
-for i in 1:610
-    for j in 1:610
-        A[i, j] = exp(-2 * abs(i - j))
-    end
 end
