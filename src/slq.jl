@@ -14,7 +14,7 @@ invfun(x) = 1/x
 tol = 0.01
 
 mutable struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
-    FN2<:Function, I<:Integer, TV<:AbstractVector{elt},
+    FN2<:Function, I<:Integer, TV<:AbstractVector{elt}, V<:AbstractVector,
     TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real}
     A::TM
     fn::FN
@@ -24,8 +24,8 @@ mutable struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
     nᵥ::I
     ctol::R
     T::TS
-    α
-    β
+    α::V
+    β::V
     ω::TV
     Y::TM2
     Θ::TV
@@ -129,13 +129,13 @@ function slq(w::SLQWorkspace; skipverify = false)
                 tr = tr + τ^2 * fn(Θ[j])
             end
             if isapprox(result, tr, rtol = ctol)
-                w.nᵥ = i
+                @show w.nᵥ = i
                 break
             end
             result = tr
             @pack! w = A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, rfn
         end
-        tr = size(w.A, 1)/w.nᵥ * tr
+        @show tr = size(w.A, 1)/w.nᵥ * tr
     else
         println("Given Matrix is NOT Symmetric Positive Definite")
     end
@@ -145,7 +145,7 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     rfn::Function = Base.rand, ctol = 0.1, eps = ϵ, mtol = tol)
 
     # Estimate eigmax and eigmin for SLQ bounds
-    mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
+    @show mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval)
     rademacherDistribution!(w.v, w.rfn, eltype(w.A))
     w.v .= w.v ./ norm(w.v)
@@ -164,13 +164,13 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     mₚ = fn(λ₁)
     ρ = (sqrt(κ) + 1)/(sqrt(κ) - 1)
     K = ((λₘ - λ₁) * (sqrt(κ) - 1)^2 * Mₚ)/(sqrt(κ) * mₚ)
-    mval = Int64(ceil((sqrt(κ)/4) * log(K/eps)))
+    @show mval = Int64(ceil((sqrt(κ)/4) * log(K/eps)))
     if mval < 10
         @warn "Low lanczos step value. Try decreasing eps and mtol for better
         accuracy."
         mval = 10
     end
-    nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
+    @show nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
 
     # Re-construct SLQWorkspace
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval, nv = nval, ctol = ctol)
