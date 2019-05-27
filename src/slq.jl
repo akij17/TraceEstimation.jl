@@ -8,6 +8,14 @@ export SLQWorkspace, slq
 using LinearAlgebra
 using Parameters
 
+# Predefined functions and values
+invfun(x) = 1/x
+
+function rademacherDistribution!(v, t::Type)
+    o = one(t)
+    v .= Base.rand.(Ref(-o:2*o:o))
+end
+
 ϵ = 0.5
 tol = 0.01
 
@@ -16,7 +24,7 @@ mutable struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
     TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real}
     A::TM
     fn::FN
-    rfn::FN2
+    dfn::FN2
     m::I
     v::AV
     nᵥ::I
@@ -37,7 +45,7 @@ end
 # we could just get a dense vector from a sparse one solving the performance
 # issue
 """
-    SLQWorkspace(A::AbstractMatrix; fn::Function, rfn::Function, ctol, m, nv)
+    SLQWorkspace(A::AbstractMatrix; fn::Function, dfn::Function, ctol, m, nv)
 
 Create an SLQWorkspace for supplied SPD Matrix A.
 Use it to calculate tr(fn(A)).
@@ -45,14 +53,12 @@ Use it to calculate tr(fn(A)).
 # Arguments
 - `A` : Symmetric Positive Definite Matrix
 - `fn` : Function to apply. By default uses inverse function
-- `rfn` : Random value generator for Rademacher Distribution. By default uses
-            Base.rand
+- `dfn` : Distribution function for v (random dist. with norm(v) = 1). By default uses rademacherDistribution!(v::Vector, t::Type)
 - `ctol` : SLQ Convergence Tolerance value. By default ctol = 0.1
 - `m` : Specify value for lanczos steps. By default m = 15
 - `nv` : Specify value for SLQ iterations. By default nb = 10
 """
-function SLQWorkspace(A; fn::Function=invfun, rfn::Function=Base.rand,
-     ctol=0.1, m=15, nv=10)
+function SLQWorkspace(A; fn::Function=invfun, dfn::Function=rademacherDistribution!, ctol=0.1, m=15, nv=10)
     elt = eltype(A)
     Atype = typeof(A)
     n = size(A, 1)
@@ -66,12 +72,7 @@ function SLQWorkspace(A; fn::Function=invfun, rfn::Function=Base.rand,
     Θ = similar(α)
     T = SymTridiagonal(α, β)
     result = zero(elt)
-    return SLQWorkspace(A, fn, rfn, m, v, nv, ctol, T, α, β, ω, Y, Θ, v₀, result)
-end
-
-function rademacherDistribution!(v, rfn::Function, t::Type)
-    o = one(t)
-    v .= rfn.(Ref(-o:2*o:o))
+    return SLQWorkspace(A, fn, dfn, m, v, nv, ctol, T, α, β, ω, Y, Θ, v₀, result)
 end
 
 function lcz(w::SLQWorkspace)
@@ -102,7 +103,7 @@ end
 """
     slq(w::SLQWorkspace; skipverify = false)
     slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
-    rfn::Function = Base.rand, ctol = 0.1, eps = ϵ, mtol = tol)
+    dfn::Function = Base.rand, ctol = 0.1, eps = ϵ, mtol = tol)
 
 SLQ method to calculate tr(fn(A)) for a Symmetric Positive Definite matrix
 A and an analytic function fn.
@@ -110,24 +111,20 @@ A and an analytic function fn.
 # Arguments
 - `A` : Symmetric Positive Definite Matrix
 - `skipverify` : Skip isposdef(A) verification. By default skipverify = false
-- `fn` : Function to apply on A before trace calculation. fn must be analytic
-            λₘ and λ₁ of A. By default fn = inv
-- `rfn` : Random number generator. Should be able to take ranges. By default
-            rfn = Base.rand, example, Base.rand.(Ref(-1:2:1, n))
-- `ctol` : SLQ Convergence Tolerance value. Decrease this for higher precision.
-            By default ctol = 0.1
-- `eps` : Error bound for lanczos steps calculation. Decrease this for higher
-            accuracy. By default eps = 0.05
-- `mtol` : Tolerance for eigenvalue Convergence. Decrease this for precision.
-            By default mtol = 0.01
+- `fn` : Function to apply on A before trace calculation. fn must be analytic λₘ and λ₁ of A. By default fn = inv
+- `dfn` : Distribution function for v (random dist. with norm(v) = 1). By default uses rademacherDistribution!(v::Vector, t::Type)
+- `ctol` : SLQ Convergence Tolerance value. Decrease this for higher precision. By default ctol = 0.1
+- `eps` : Error bound for lanczos steps calculation. Decrease this for higher accuracy. By default eps = 0.05
+- `mtol` : Tolerance for eigenvalue Convergence. Decrease this for precision. By default mtol = 0.01
 """
 function slq(w::SLQWorkspace; skipverify = false)
     if skipverify || isposdef(w.A)
         tr = zero(eltype(w.A))
         for i in 1:w.nᵥ
-            @unpack A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, rfn = w
+            @unpack A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, dfn = w
             # Create a uniform random distribution with norm(v) = 1
-            rademacherDistribution!(v, rfn, eltype(A))
+            dfn(v, eltype(A))
+            # rademacherDistribution!(v, rfn, eltype(A))
             v .= v ./ norm(v)
             # Run lanczos algorithm to find estimate Ritz SymTridiagonal
             lcz(w)
@@ -142,7 +139,7 @@ function slq(w::SLQWorkspace; skipverify = false)
                 break
             end
             result = tr
-            @pack! w = A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, rfn
+            @pack! w = A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, dfn
         end
         tr = size(w.A, 1)/w.nᵥ * tr
     else
@@ -150,13 +147,13 @@ function slq(w::SLQWorkspace; skipverify = false)
     end
 end
 
-function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
-    rfn::Function = Base.rand, ctol = 0.1, eps = ϵ, mtol = tol)
+function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::Function = rademacherDistribution!, ctol = 0.1, eps = ϵ, mtol = tol)
 
     # Estimate eigmax and eigmin for SLQ bounds
     mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
-    w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval)
-    rademacherDistribution!(w.v, w.rfn, eltype(w.A))
+    w = SLQWorkspace(A, fn = fn, dfn = dfn, m = mval)
+    #rademacherDistribution!(w.v, w.rfn, eltype(w.A))
+    w.dfn(w.v, eltype(w.A))
     w.v .= w.v ./ norm(w.v)
     lcz(w)
     λₘ = eigmax(w.T)
@@ -168,6 +165,7 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     end
 
     # SLQ bounds
+    # Todo: Research and create better bounds for λ₁ < 1 && λₘ > 1 case
     κ = λₘ/λ₁
     Mₚ = fn(λₘ)
     mₚ = fn(λ₁)
@@ -182,6 +180,6 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
 
     # Re-construct SLQWorkspace
-    w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval, nv = nval, ctol = ctol)
+    w = SLQWorkspace(A, fn = fn, dfn = dfn, m = mval, nv = nval, ctol = ctol)
     slq(w, skipverify = skipverify)
 end
