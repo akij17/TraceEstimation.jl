@@ -74,7 +74,6 @@ using TraceEstimation
             acv = tr(inv(M))
             @test isapprox(obv, acv, rtol = 1)
         end
-        =#
         @testset "TopOpt Shift +1 Matrix" begin
             println("Executing Test 07: TopOpt Shift +1")
             println("Loading from JLD2 file")
