@@ -8,31 +8,34 @@ export SLQWorkspace, slq
 using LinearAlgebra
 using Parameters
 
-# Predefined function and values
-invfun(x) = 1/x
 ϵ = 0.5
 tol = 0.01
 
 mutable struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
-    FN2<:Function, I<:Integer, TV<:AbstractVector{elt}, V<:AbstractVector,
+    FN2<:Function, I<:Integer, TV<:AbstractVector{elt}, AV<:AbstractVector{elt},
     TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real}
     A::TM
     fn::FN
     rfn::FN2
     m::I
-    v::TV
+    v::AV
     nᵥ::I
     ctol::R
     T::TS
-    α::V
-    β::V
+    α::TV
+    β::TV
     ω::TV
     Y::TM2
     Θ::TV
-    v₀::TV
+    v₀::AV
     result::elt
 end
 
+# Using v = Vector{elt}(undef, n) will increase the performance but due to
+# support issue for CuArray, it must be kept similar(A, n).
+# This is a good use-case for full (which was removed in Julia 1.0) where
+# we could just get a dense vector from a sparse one solving the performance
+# issue
 """
     SLQWorkspace(A::AbstractMatrix; fn::Function, rfn::Function, ctol, m, nv)
 
@@ -53,13 +56,14 @@ function SLQWorkspace(A; fn::Function=invfun, rfn::Function=Base.rand,
     elt = eltype(A)
     Atype = typeof(A)
     n = size(A, 1)
+    #v = Vector{elt}(undef, n)
     v = similar(A, n)
     v₀ = similar(v)
     α = Vector{elt}(undef, m)
     β = Vector{elt}(undef, m-1)
-    ω = similar(A, n)
+    ω = Vector{elt}(undef, n)
     Y = similar(A, m, m)
-    Θ = similar(A, m)
+    Θ = similar(α)
     T = SymTridiagonal(α, β)
     result = zero(elt)
     return SLQWorkspace(A, fn, rfn, m, v, nv, ctol, T, α, β, ω, Y, Θ, v₀, result)
@@ -74,6 +78,7 @@ function lcz(w::SLQWorkspace)
     α₀ = zero(eltype(w.A))
     β₀ = zero(eltype(w.A))
     fill!(w.v₀, 0)
+    # Following loop executes lanczos steps
     for i in 1:w.m
         @unpack A, v, ω, v₀, α, β, m, T = w
         mul!(ω, A, v)
@@ -86,7 +91,9 @@ function lcz(w::SLQWorkspace)
             β[i] = β₀
         end
 
-        copy!(v₀, v)
+        # Sparse Vectors do not support copy!
+        #copy!(v₀, v)
+        v₀ .= v
         v .= ω ./ β₀
         @pack! w = A, v, ω, v₀, α, β, m, T
     end
@@ -119,8 +126,10 @@ function slq(w::SLQWorkspace; skipverify = false)
         tr = zero(eltype(w.A))
         for i in 1:w.nᵥ
             @unpack A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, rfn = w
+            # Create a uniform random distribution with norm(v) = 1
             rademacherDistribution!(v, rfn, eltype(A))
             v .= v ./ norm(v)
+            # Run lanczos algorithm to find estimate Ritz SymTridiagonal
             lcz(w)
             Y .= eigvecs(T)
             Θ .= eigvals(T)
@@ -129,13 +138,13 @@ function slq(w::SLQWorkspace; skipverify = false)
                 tr = tr + τ^2 * fn(Θ[j])
             end
             if isapprox(result, tr, rtol = ctol)
-                @show w.nᵥ = i
+                w.nᵥ = i
                 break
             end
             result = tr
             @pack! w = A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, rfn
         end
-        @show tr = size(w.A, 1)/w.nᵥ * tr
+        tr = size(w.A, 1)/w.nᵥ * tr
     else
         println("Given Matrix is NOT Symmetric Positive Definite")
     end
@@ -145,7 +154,7 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     rfn::Function = Base.rand, ctol = 0.1, eps = ϵ, mtol = tol)
 
     # Estimate eigmax and eigmin for SLQ bounds
-    @show mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
+    mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval)
     rademacherDistribution!(w.v, w.rfn, eltype(w.A))
     w.v .= w.v ./ norm(w.v)
@@ -164,13 +173,13 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
     mₚ = fn(λ₁)
     ρ = (sqrt(κ) + 1)/(sqrt(κ) - 1)
     K = ((λₘ - λ₁) * (sqrt(κ) - 1)^2 * Mₚ)/(sqrt(κ) * mₚ)
-    @show mval = Int64(ceil((sqrt(κ)/4) * log(K/eps)))
+    mval = Int64(ceil((sqrt(κ)/4) * log(K/eps)))
     if mval < 10
         @warn "Low lanczos step value. Try decreasing eps and mtol for better
         accuracy."
         mval = 10
     end
-    @show nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
+    nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
 
     # Re-construct SLQWorkspace
     w = SLQWorkspace(A, fn = fn, rfn = rfn, m = mval, nv = nval, ctol = ctol)
