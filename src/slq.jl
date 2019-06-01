@@ -16,10 +16,10 @@ function rademacherDistribution!(v, t::Type)
     v .= Base.rand.(Ref(-o:2*o:o))
 end
 
-ϵ = 0.5
-tol = 0.01
+const ϵ = 0.5
+const tol = 0.01
 
-mutable struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
+struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
     FN2<:Function, I<:Integer, TV<:AbstractVector{elt}, AV<:AbstractVector{elt},
     TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real}
     A::TM
@@ -36,7 +36,6 @@ mutable struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
     Y::TM2
     Θ::TV
     v₀::AV
-    result::elt
 end
 
 # Using v = Vector{elt}(undef, n) will increase the performance but due to
@@ -71,8 +70,7 @@ function SLQWorkspace(A; fn::Function=invfun, dfn::Function=rademacherDistributi
     Y = similar(A, m, m)
     Θ = similar(α)
     T = SymTridiagonal(α, β)
-    result = zero(elt)
-    return SLQWorkspace(A, fn, dfn, m, v, nv, ctol, T, α, β, ω, Y, Θ, v₀, result)
+    return SLQWorkspace(A, fn, dfn, m, v, nv, ctol, T, α, β, ω, Y, Θ, v₀)
 end
 
 function lcz(w::SLQWorkspace)
@@ -80,8 +78,8 @@ function lcz(w::SLQWorkspace)
     β₀ = zero(eltype(w.A))
     fill!(w.v₀, 0)
     # Following loop executes lanczos steps
+    @unpack A, v, ω, v₀, α, β, m, T = w
     for i in 1:w.m
-        @unpack A, v, ω, v₀, α, β, m, T = w
         mul!(ω, A, v)
         α₀ = dot(ω, v)
         ω .= ω .- (α₀ .* v) .- (β₀ .* v₀)
@@ -96,10 +94,9 @@ function lcz(w::SLQWorkspace)
         #copy!(v₀, v)
         v₀ .= v
         v .= ω ./ β₀
-        @pack! w = A, v, ω, v₀, α, β, m, T
     end
-    w.T = SymTridiagonal(w.α, w.β)
 end
+
 """
     slq(w::SLQWorkspace; skipverify = false)
     slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun,
@@ -118,10 +115,12 @@ A and an analytic function fn.
 - `mtol` : Tolerance for eigenvalue Convergence. Decrease this for precision. By default mtol = 0.01
 """
 function slq(w::SLQWorkspace; skipverify = false)
+    @unpack A, v, T, Y, Θ, m, nᵥ, ctol, fn, dfn = w
+    tr = zero(eltype(w.A))
     if skipverify || isposdef(w.A)
-        tr = zero(eltype(w.A))
+        actual_nᵥ = nᵥ
         for i in 1:w.nᵥ
-            @unpack A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, dfn = w
+            prev_tr = tr
             # Create a uniform random distribution with norm(v) = 1
             dfn(v, eltype(A))
             # rademacherDistribution!(v, rfn, eltype(A))
@@ -134,17 +133,17 @@ function slq(w::SLQWorkspace; skipverify = false)
                 τ = Y[1,j]
                 tr = tr + τ^2 * fn(Θ[j])
             end
-            if isapprox(result, tr, rtol = ctol)
-                w.nᵥ = i
+            if isapprox(prev_tr, tr, rtol = ctol)
+                actual_nᵥ = i
                 break
             end
-            result = tr
-            @pack! w = A, v, T, Y, Θ, m, nᵥ, result, ctol, fn, dfn
         end
-        tr = size(w.A, 1)/w.nᵥ * tr
+        tr = size(w.A, 1)/actual_nᵥ * tr
     else
-        println("Given Matrix is NOT Symmetric Positive Definite")
+        throw("Given Matrix is NOT Symmetric Positive Definite")
     end
+
+    return tr
 end
 
 function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::Function = rademacherDistribution!, ctol = 0.1, eps = ϵ, mtol = tol)
