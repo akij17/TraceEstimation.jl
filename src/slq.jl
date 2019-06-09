@@ -159,8 +159,7 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::
     λ₁ = eigmin(w.T)
 
     if λ₁ < 1 && λₘ > 1
-        @warn "Eigenvalues cross zero. Functions like log may not give
-        correct results. Try scaling the input matrix."
+        @warn "Eigenvalues cross zero. Functions like log may not give correct results. Try scaling the input matrix."
     end
 
     # SLQ bounds
@@ -172,9 +171,8 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::
     K = ((λₘ - λ₁) * (sqrt(κ) - 1)^2 * Mₚ)/(sqrt(κ) * mₚ)
     mval = Int64(ceil((sqrt(κ)/4) * log(K/eps)))
     if mval < 10
-        @warn "Low lanczos step value. Try decreasing eps and mtol for better
-        accuracy."
-        mval = 10
+        @warn "Low lanczos step value. Try decreasing eps and mtol for better accuracy."
+        mval = 5
     end
     nval = Int64(ceil((24/ϵ^2) * log(2/mtol)))
 
