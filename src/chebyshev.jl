@@ -3,7 +3,7 @@
 
 using LinearAlgebra
 
-𝓍(k, n) = cos((π*(k+0.5))/(n+1))
+𝓍(k, n) = cos((π * (k + 0.5))/(n+1))
 const Tvals = Dict{Int, Float64}()
 fn(x) = 1/(x)
 
@@ -21,14 +21,14 @@ end
 
 function coeff(j, n, a, b)
     functionsum = 0.0
-    for i in 0:n
-        x = 𝓍(i, n)
-        functionsum = fn(((b-a)/2 * x) + (b+a)/2) * T(j, x)
+    for k in 0:n
+        x = 𝓍(k, n)
+        functionsum = fn((((b-a)/2) * x) + (b+a)/2) * T(j, x)
     end
     if j == 0
-        return 1/(n+1) * functionsum
+        return (1/(n+1)) * functionsum
     end
-    return 2/(n+1) * functionsum
+    return (2/(n+1)) * functionsum
 end
 
 function rademacherDistribution(n, T::Type)
@@ -37,10 +37,11 @@ function rademacherDistribution(n, T::Type)
 end
 
 function chebyshev(A, a, b, m, n)
-    tr = 0.0
+    tr = zero(eltype(A))
     C = []
     for j in 0:n
-        push!(C, coeff(j, n, a, b))
+        @show cⱼ = coeff(j, n, a, b)
+        push!(C, cⱼ)
     end
     s = size(A, 1)
     w₀ = zeros(eltype(A), s)
@@ -50,31 +51,29 @@ function chebyshev(A, a, b, m, n)
     for i in 1:m
         v = rademacherDistribution(s, eltype(A))
         w₀ .= v
-        w₁ = (2/(b-a) * A * v) - ((b+a)/(b-a) * v)
-        #mul!(w₁, 2/(b-a) * A, v)
-        #w₁ = w₁ - ((b+a)/(b-a) * v)
-        u = C[1]*w₀ + C[2]*w₁
+        mul!(w₁, (2/(b-a)) * A, v)
+        w₁ .= w₁ .- (((b+a)/(b-a)) .* v)
+        u .= C[1]*w₀ .+ C[2]*w₁
         for j in 2:n
-            w₂ = (4/(b-a) * A * w₁) - (2(b+a)/(b-a) * w₁) - w₀
-            #mul!(w₂, 4/(b-a) * A, w₁)
-            #w₂ = w₂ - 2(b+a)/(b-a)*w₁ - w₀
-            u = u + C[j+1]*w₂
+            mul!(w₂, (4/(b-a)) * A, w₁)
+            w₂ .= w₂ .- ((2(b+a)/(b-a)) .* w₁) .- w₀
+            u .= u .+ C[j+1]*w₂
             w₀ .= w₁
             w₁ .= w₂
         end
-        tr = tr + (v' * u/m)
+        @show tr = tr + (v' * u)/m
     end
     return tr
 end
 
-A = rand(1500,1500)
+A = rand(2234,2234)
 A = A + A'
 while !isposdef(A)
     global A = A + 10I
 end
 
-aa = eigmin(A)
-bb = eigmax(A)
+a = eigmin(A) - 0.5
+b = eigmax(A) + 0.5
 
-@time println(chebyshev(A, aa, bb, 4, 6))
-@time println(tr(A^-1))
+@time @show chebyshev(A, a, b, 4,6)
+@time @show tr(inv(A))
