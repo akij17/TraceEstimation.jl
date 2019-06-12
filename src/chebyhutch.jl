@@ -5,6 +5,7 @@ export ChebyHutchSpace, chebyhutch
 
 using LinearAlgebra
 using Parameters
+include("slq.jl")
 
 𝓍(k, n) = cos((π * (k + 0.5))/(n+1))
 invfun(x) = 1/(x)
@@ -94,16 +95,16 @@ function chebyhutch(w::ChebyHutchSpace)
     return tr
 end
 
-#=
-A = rand(1500,1500)
-A = A + A'
-while !isposdef(A)
-    global A = A + 10I
+function chebyhutch(A; fn::Function=invfun, dfn::Function=rademacherDistribution!, m = 4, n = 6)
+    # Estimate eigmax and eigmin for Chebyshev bounds
+    mval = Int64(ceil(log(0.5/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(0.01))))
+    w = SLQWorkspace(A, fn = fn, dfn = dfn, m = mval)
+    w.dfn(w.v, eltype(w.A))
+    w.v .= w.v ./ norm(w.v)
+    lcz(w)
+    λₘ = eigmax(w.T)
+    λ₁ = eigmin(w.T)
+
+    wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = m, n = n)
+    chebyhutch(wx)
 end
-
-@show a = eigmin(A)
-@show b = eigmax(A)
-
-@time @show chebyshev(w)
-@time @show tr(inv(A))
-=#
