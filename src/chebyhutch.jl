@@ -5,17 +5,10 @@ export ChebyHutchSpace, chebyhutch
 
 using LinearAlgebra
 using Parameters
-include("slq.jl")
 
 𝓍(k, n) = cos((π * (k + 0.5))/(n+1))
-invfun(x) = 1/(x)
 
-function rademacherDistribution!(v)
-    o = one(eltype(v))
-    v .= Base.rand.(Ref(-o:2*o:o))
-end
-
-struct ChebyHutchSpace{elt, TM<:AbstractMatrix{elt}, FN<:Function, FN2<:Function, TA<:AbstractArray{elt, 1}, TV<:AbstractVector{elt}, I<:Integer}
+struct ChebyHutchSpace{elt, TM, FN<:Function, FN2<:Function, TA<:AbstractArray{elt, 1}, TV<:AbstractVecOrMat{elt}, I<:Integer}
     A::TM
     a::elt
     b::elt
@@ -35,7 +28,7 @@ function ChebyHutchSpace(A, a, b; fn::Function=invfun, dfn::Function=rademacherD
     elt = eltype(A)
     s = size(A, 1)
     C = elt[]
-    v = Vector{elt}(undef, s)
+    v = Matrix{elt}(undef, s, m)
     w₀ = similar(v)
     w₁ = similar(v)
     w₂ = similar(v)
@@ -73,33 +66,32 @@ end
 
 function chebyhutch(w::ChebyHutchSpace)
     @unpack A, a, b, C, fn, dfn, v, u, w₀, w₁, w₂, m, n = w
-    tr = zero(eltype(A))
     for j in 0:n
         push!(C, coeff(j, n, a, b, fn))
     end
-    for i in 1:m
-        dfn(v)
-        w₀ .= v
-        mul!(w₁, (2/(b-a)) .* A, v)
-        w₁ .= w₁ .- (((b+a)/(b-a)) .* v)
-        u .= (C[1] .* w₀) .+ (C[2] .* w₁)
-        for j in 2:n
-            mul!(w₂, (4/(b-a)) .* A, w₁)
-            w₂ .= w₂ .- ((2(b+a)/(b-a)) .* w₁) .- w₀
-            u .= u .+ (C[j+1] .* w₂)
-            w₀ .= w₁
-            w₁ .= w₂
-        end
-        tr = tr + (v' * u/m)
+    dfn(v)
+    w₀ .= v
+    mul!(w₁, A, v)
+    rmul!(w₁, 2/(b-a))
+    w₁ .= w₁ .- (((b+a)/(b-a)) .* v)
+    u .= (C[1] .* w₀) .+ (C[2] .* w₁)
+    for j in 2:n
+        mul!(w₂, A, w₁)
+        rmul!(w₂, 4/(b-a))
+        w₂ .= w₂ .- ((2(b+a)/(b-a)) .* w₁) .- w₀
+        u .= u .+ (C[j+1] .* w₂)
+        w₀ .= w₁
+        w₁ .= w₂
     end
-    return tr
+    # Allocation-free batch dot product and averaging
+    return dot(v, u) / m
 end
 
 function chebyhutch(A; fn::Function=invfun, dfn::Function=rademacherDistribution!, m = 4, n = 6)
     # Estimate eigmax and eigmin for Chebyshev bounds
     mval = Int64(ceil(log(0.5/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(0.01))))
     w = SLQWorkspace(A, fn = fn, dfn = dfn, m = mval)
-    w.dfn(w.v, eltype(w.A))
+    dfn(w.v)
     w.v .= w.v ./ norm(w.v)
     lcz(w)
     λₘ = eigmax(w.T)
