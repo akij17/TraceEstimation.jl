@@ -1,5 +1,6 @@
 module TraceEstimation
 
+include("common.jl")
 include("hutchinson.jl")
 include("diagapp.jl")
 include("slq.jl")
