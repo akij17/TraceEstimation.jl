@@ -5,6 +5,8 @@ export ChebyHutchSpace, chebyhutch
 
 using LinearAlgebra
 using Parameters
+include("common.jl")
+include("slq.jl")
 
 const ϵ = 0.5
 const ξ = 0.1
@@ -101,7 +103,6 @@ function chebyhutch(w::ChebyHutchSpace)
             w₀ .= w₁
             w₁ .= w₂
         end
-        # Allocation-free batch dot product and averaging
         tr = tr + dot(v, u) / m
     end
     return tr
@@ -129,3 +130,70 @@ function chebyhutch(A; fn::Function=invfun, dfn::Function=rademacherDistribution
     wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = mVal, n = nVal, blocksize = mVal)
     chebyhutch(wx)
 end
+#=
+using CuArrays, TopOpt
+s = (40, 10) # increase to increase the matrix size
+xmin = 0.9 # decrease to increase the condition number
+problem = HalfMBB(Val{:Linear}, s, (1.0, 1.0), 1.0, 0.3, 1.0)
+solver = FEASolver(Displacement, Direct, problem, xmin = xmin)
+n = length(solver.vars)
+solver.vars[rand(1:n, n÷2)] .= 0
+solver()
+K = solver.globalinfo.K
+
+A = KMatrix(K)
+=#
+struct KMatrix{T, M<:AbstractMatrix{T},Md<:AbstractMatrix{T}, V<:AbstractVector{T}} <:AbstractMatrix{T}
+    K::M
+    invD::Md
+    temp::V
+end
+function KMatrix(K::AbstractMatrix)
+    invD = inv(Diagonal(sqrt.(diag(K))))
+    temp = Vector{eltype(K)}(undef, size(K,1))
+    return KMatrix(K, invD, temp)
+end
+Base.size(A::KMatrix, i...) = size(A.K, i...)
+Base.getindex(A::KMatrix, i...) = getindex(A.K, i...)
+LinearAlgebra.mul!(y::AbstractVector{T}, A::KMatrix, x::AbstractVector{T}) where {T} = (mul!(y, A.invD, x); mul!(A.temp, A.K, y); mul!(y, A.invD, A.temp))
+
+function chebybreak(A, m, n; fn::Function=invfun, dfn::Function=rademacherDistribution!, blocksize = m)
+    # calculate extremal eigenvals
+    λ₁, λₘ = lczeigen(A, fn, dfn)
+
+    wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = m, n = n, blocksize = m)
+    return chebybreak(wx)
+end
+
+function chebybreak(w::ChebyHutchSpace)
+    @unpack A, a, b, C, fn, dfn, v, u, w₀, w₁, w₂, m, n, blocksize = w
+    tr = zero(eltype(A))
+    for j in 0:n
+        push!(C, coeff(j, n, a, b, fn))
+    end
+    for i in 0:blocksize:m-1
+        dfn(v)
+        w₀ .= v
+        mul!(w₁, A, v)
+        rmul!(w₁, 2/(b-a))
+        w₁ .= w₁ .- (((b+a)/(b-a)) .* v)
+        u .= (C[1] .* w₀) .+ (C[2] .* w₁)
+        for j in 2:n
+            mul!(w₂, A, w₁)
+            rmul!(w₂, 4/(b-a))
+            w₂ .= w₂ .- ((2(b+a)/(b-a)) .* w₁) .- w₀
+            u .= u .+ (C[j+1] .* w₂)
+            w₀ .= w₁
+            w₁ .= w₂
+        end
+        #tr = tr + dot(v, u) / m
+    end
+    u[:,m] .= v[:,m] .* u[:,m]
+    return Diagonal(u[:,m])
+end
+
+A = rand(10,10)
+A = A + A'
+A = A + 20I
+println(diag(chebybreak(A,8,12)))
+println(diag(inv(A)))
