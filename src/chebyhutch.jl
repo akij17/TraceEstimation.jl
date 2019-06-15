@@ -5,6 +5,7 @@ export ChebyHutchSpace, chebyhutch
 
 using LinearAlgebra
 using Parameters
+using Statistics
 include("common.jl")
 include("slq.jl")
 
@@ -25,7 +26,7 @@ end
 
 𝓍(k, n) = cos((π * (k + 0.5))/(n+1))
 
-struct ChebyHutchSpace{elt, TM, FN<:Function, FN2<:Function, TA<:AbstractArray{elt, 1}, TV<:AbstractVecOrMat{elt}, I<:Int64}
+mutable struct ChebyHutchSpace{elt, TM, FN<:Function, FN2<:Function, TA<:AbstractArray{elt, 1}, TV<:AbstractVecOrMat{elt}, I<:Int64}
     A::TM
     a::elt
     b::elt
@@ -130,19 +131,7 @@ function chebyhutch(A; fn::Function=invfun, dfn::Function=rademacherDistribution
     wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = mVal, n = nVal, blocksize = mVal)
     chebyhutch(wx)
 end
-#=
-using CuArrays, TopOpt
-s = (40, 10) # increase to increase the matrix size
-xmin = 0.9 # decrease to increase the condition number
-problem = HalfMBB(Val{:Linear}, s, (1.0, 1.0), 1.0, 0.3, 1.0)
-solver = FEASolver(Displacement, Direct, problem, xmin = xmin)
-n = length(solver.vars)
-solver.vars[rand(1:n, n÷2)] .= 0
-solver()
-K = solver.globalinfo.K
 
-A = KMatrix(K)
-=#
 struct KMatrix{T, M<:AbstractMatrix{T},Md<:AbstractMatrix{T}, V<:AbstractVector{T}} <:AbstractMatrix{T}
     K::M
     invD::Md
@@ -157,10 +146,15 @@ Base.size(A::KMatrix, i...) = size(A.K, i...)
 Base.getindex(A::KMatrix, i...) = getindex(A.K, i...)
 LinearAlgebra.mul!(y::AbstractVector{T}, A::KMatrix, x::AbstractVector{T}) where {T} = (mul!(y, A.invD, x); mul!(A.temp, A.K, y); mul!(y, A.invD, A.temp))
 
+using JLD2, FileIO, SparseArrays
+@load "topopt902.jld2" K
+A = KMatrix(K)
+
 function chebybreak(A, m, n; fn::Function=invfun, dfn::Function=rademacherDistribution!, blocksize = m)
     # calculate extremal eigenvals
-    λ₁, λₘ = lczeigen(A, fn, dfn)
-
+    #@show λ₁, λₘ = lczeigen(A, fn, dfn)
+    λ₁ = 1.0e-5
+    λₘ = 5.5
     wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = m, n = n, blocksize = m)
     return chebybreak(wx)
 end
@@ -188,12 +182,10 @@ function chebybreak(w::ChebyHutchSpace)
         end
         #tr = tr + dot(v, u) / m
     end
-    u[:,m] .= v[:,m] .* u[:,m]
-    return Diagonal(u[:,m])
+    r = Vector{eltype(A)}(undef, size(A, 1))
+    r = vec(mean(v .* u, dims=2))
+    return Diagonal(r)
 end
 
-A = rand(10,10)
-A = A + A'
-A = A + 20I
-println(diag(chebybreak(A,8,12)))
-println(diag(inv(A)))
+M = chebybreak(A,4,6)
+println(sum(A.invD^2 * M))
