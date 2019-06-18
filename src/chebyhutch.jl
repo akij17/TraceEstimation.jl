@@ -81,7 +81,7 @@ Create Chebyshev-Hutchinson Workspace for chebyhutch or chebydiagonal methods.
 - `n` : Polynomial degree, increase this for accuracy. By default n = 6
 """
 function ChebyHutchSpace(A::AbstractMatrix, a::Number, b::Number; fn::Function=invfun, dfn::Function=rademacherDistribution!, m = 4, n = 6)
-    elt = eltype(A)0
+    elt = eltype(A)
     s = size(A, 1)
     C = elt[]
     v = Matrix{elt}(undef, s, min(m, blocksize))
