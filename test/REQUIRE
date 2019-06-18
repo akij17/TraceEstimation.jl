@@ -1,4 +1,8 @@
 Test
-JLD2 0.1.2
-FileIO 1.0.6
-MatrixDepot 0.8.0
+Random
+LinearAlgebra
+SparseArrays
+JLD2
+FileIO
+MatrixDepot
+TraceEstimation
