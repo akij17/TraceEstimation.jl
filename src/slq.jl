@@ -8,9 +8,6 @@ export SLQWorkspace, slq
 using LinearAlgebra
 using Parameters
 
-const ϵ = 0.5
-const tol = 0.01
-
 struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
     FN2<:Function, I<:Integer, TV<:AbstractVector{elt}, AV<:AbstractVector{elt},
     TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real}
@@ -137,7 +134,7 @@ function slq(w::SLQWorkspace; skipverify = false)
     return tr
 end
 
-function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::Function = rademacherDistribution!, ctol = 0.1, eps = ϵ, mtol = tol)
+function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::Function = rademacherDistribution!, ctol = 0.1, eps = ϵ, mtol = ξ)
 
     # Estimate eigmax and eigmin for SLQ bounds
     mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
