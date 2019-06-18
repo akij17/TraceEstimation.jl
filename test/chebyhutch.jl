@@ -88,7 +88,7 @@ using TraceEstimation
             K = solver.globalinfo.K
             K = K+1*I
             =#
-            @load "d:/topoptfile.jld2" K
+            @load "topoptfile.jld2" K
             obv = chebyhutch(K, 4, 8, fn = inv)
             M = Matrix(K)
             acv = tr(inv(M))
