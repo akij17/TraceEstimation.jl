@@ -6,8 +6,6 @@ export ChebyHutchSpace, chebyhutch, chebydiagonal
 using LinearAlgebra
 using Parameters
 using Statistics
-include("common.jl")
-include("slq.jl")
 
 # Lanczos iteration for finding extremal eigenvalues of the matrix
 function lczeigen(A, fn, dfn)
