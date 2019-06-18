@@ -5,6 +5,7 @@ using TraceEstimation
 # SLQ
 @testset "slq.jl" begin
     include("slq.jl")
+    include("chebyhutch.jl")
 end
 
 #=
