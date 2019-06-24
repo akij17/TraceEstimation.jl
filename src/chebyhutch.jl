@@ -101,13 +101,13 @@ function chebypm(w::ChebyHutchSpace)
     dfn(v)
     w₀ .= v
     mul!(w₁, A, v)
-    rmul!(w₁, 2/(b-a))
-    w₁ .= w₁ .- (((b+a)/(b-a)) .* v)
+    #rmul!(w₁, 2/(b-a))
+    w₁ .= 2/(b-a) .* w₁ .- (((b+a)/(b-a)) .* v)
     u .= (C[1] .* w₀) .+ (C[2] .* w₁)
     for j in 2:n
         mul!(w₂, A, w₁)
-        rmul!(w₂, 4/(b-a))
-        w₂ .= w₂ .- ((2(b+a)/(b-a)) .* w₁) .- w₀
+        #rmul!(w₂, 4/(b-a))
+        w₂ .= 4/(b-a) .* w₂ .- ((2(b+a)/(b-a)) .* w₁) .- w₀
         u .= u .+ (C[j+1] .* w₂)
         w₀ .= w₁
         w₁ .= w₂
@@ -141,7 +141,7 @@ function chebyhutch(A::AbstractMatrix, m::Integer, n::Integer; fn::Function=invf
     return chebyhutch(wx)
 end
 
-function chebyhutch(A::AbstractMatrix; fn::Function=invfun, dfn::Function=rademacherDistribution!)
+function chebyhutch(A::AbstractMatrix; m = -1, n = -1, fn::Function=invfun, dfn::Function=rademacherDistribution!)
     # calculate extremal eigenvals
     λ₁, λₘ = lczeigen(A, fn, dfn)
 
@@ -149,10 +149,14 @@ function chebyhutch(A::AbstractMatrix; fn::Function=invfun, dfn::Function=radema
     # these bounds are for theoretical purposes only
     κ = λₘ/λ₁
     ρ = sqrt(2 * κ - 1) - 1
-    mVal = Int64(ceil(54 * (ϵ)^(-2) * log(2/ξ)/16))
-    nVal = Int64(ceil((log(8/ϵ)*ρ*κ)/(log((2/ρ) + 1))/16))
+    if m == -1
+        m = Int64(ceil(54 * (ϵ)^(-2) * log(2/ξ)/16))
+    end
+    if n == -1
+        nVal = Int64(ceil((log(8/ϵ)*ρ*κ)/(log((2/ρ) + 1))/16))
+    end
 
-    wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = mVal, n = nVal)
+    wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = m, n = n)
     return chebyhutch(wx)
 end
 """

@@ -146,7 +146,7 @@ function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::
     λₘ = eigmax(w.T)
     λ₁ = eigmin(w.T)
 
-    if λ₁ < 1 && λₘ > 1
+    if λ₁ < 0 && λₘ > 0
         @warn "Eigenvalues cross zero. Functions like log may not give correct results. Try scaling the input matrix."
     end
 
