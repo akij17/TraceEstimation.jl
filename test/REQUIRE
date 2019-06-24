@@ -4,5 +4,6 @@ LinearAlgebra
 SparseArrays
 JLD2
 FileIO
+Suppressor
 MatrixDepot
 TraceEstimation
