@@ -8,17 +8,6 @@ export SLQWorkspace, slq
 using LinearAlgebra
 using Parameters
 
-# Predefined functions and values
-invfun(x) = 1/x
-
-function rademacherDistribution!(v, t::Type)
-    o = one(t)
-    v .= Base.rand.(Ref(-o:2*o:o))
-end
-
-const ϵ = 0.5
-const tol = 0.01
-
 struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
     FN2<:Function, I<:Integer, TV<:AbstractVector{elt}, AV<:AbstractVector{elt},
     TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real}
@@ -122,8 +111,7 @@ function slq(w::SLQWorkspace; skipverify = false)
         for i in 1:w.nᵥ
             prev_tr = tr
             # Create a uniform random distribution with norm(v) = 1
-            dfn(v, eltype(A))
-            # rademacherDistribution!(v, rfn, eltype(A))
+            dfn(v)
             v .= v ./ norm(v)
             # Run lanczos algorithm to find estimate Ritz SymTridiagonal
             lcz(w)
@@ -146,19 +134,19 @@ function slq(w::SLQWorkspace; skipverify = false)
     return tr
 end
 
-function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::Function = rademacherDistribution!, ctol = 0.1, eps = ϵ, mtol = tol)
+function slq(A::AbstractMatrix; skipverify = false, fn::Function = invfun, dfn::Function = rademacherDistribution!, ctol = 0.1, eps = ϵ, mtol = ξ)
 
     # Estimate eigmax and eigmin for SLQ bounds
     mval = Int64(ceil(log(eps/(1.648 * sqrt(size(A, 1))))/(-2 * sqrt(mtol))))
     w = SLQWorkspace(A, fn = fn, dfn = dfn, m = mval)
-    #rademacherDistribution!(w.v, w.rfn, eltype(w.A))
-    w.dfn(w.v, eltype(w.A))
+    #rademacherDistribution!(w.v)
+    w.dfn(w.v)
     w.v .= w.v ./ norm(w.v)
     lcz(w)
     λₘ = eigmax(w.T)
     λ₁ = eigmin(w.T)
 
-    if λ₁ < 1 && λₘ > 1
+    if λ₁ < 0 && λₘ > 0
         @warn "Eigenvalues cross zero. Functions like log may not give correct results. Try scaling the input matrix."
     end
 

@@ -4,12 +4,15 @@ using LinearAlgebra
 using SparseArrays
 using MatrixDepot
 using JLD2, FileIO
-using Suppressor
 using TraceEstimation
 
-@suppress @testset "SLQ" begin
-    Random.seed!(123543)
-    @testset "Dense SPD Matrices" begin
+function MAPE(A::Vector, O::Vector)
+    return 1/size(A, 1) * sum(abs.((A .- O) ./ A))
+end
+
+@testset "Cheby-Hutch" begin
+    Random.seed!(123432)
+    @testset "Dense Matrices" begin
         @testset "a[i,j] = exp(-2 * abS(i - j)) (small size)" begin
             println("Executing Test 01: Dense SPD - Small Size - Inverse")
             A = rand(610, 610)
@@ -18,7 +21,7 @@ using TraceEstimation
                     A[i, j] = exp(-2 * abs(i - j))
                 end
             end
-            obv = slq(A, fn = inv, ctol = 0.01, eps = 0.05, mtol = 0.01)
+            obv = chebyhutch(A, 4, 6, fn = inv)
             acv = tr(inv(A))
             @test isapprox(obv, acv, rtol=0.01)
         end
@@ -30,39 +33,39 @@ using TraceEstimation
                     A[i, j] = exp(-2 * abs(i - j))
                 end
             end
-            obv = slq(A, fn = inv, ctol = 0.01, eps = 0.05, mtol = 0.01)
+            obv = chebyhutch(A, 4, 6, fn = inv)
             acv = tr(inv(A))
             @test isapprox(obv, acv, rtol=0.01)
         end
         @testset "Random SPD Matrix (large size)" begin
-            println("Executing Test 03: Random Dense SPD - Large Size - Log")
+            println("Executing Test 03: Random Dense SPD - Large Size - Log Determinant")
             A = rand(4610, 4610)
             A = A + A'
             while !isposdef(A)
                 A = A + 30I
             end
-            obv = slq(A, fn = log, ctol = 0.01)
-            acv = tr(log(A))
-            @test isapprox(obv, acv, rtol=0.01)
+            obv = chebyhutch(A, 4, 8, fn = log)
+            acv = logdet(A)
+            @test isapprox(obv, acv, rtol=0.02)
         end
         @testset "Hilbert Matrix" begin
             println("Executing Test 04: Dense Hilbert SPD - Inverse")
             A = matrixdepot("hilb", 3000)
             A = A + I
-            obv = slq(A, fn = inv, ctol = 0.01)
+            obv = chebyhutch(A, 4, 6, fn = inv)
             acv = tr(inv(A))
             @test isapprox(obv, acv, rtol=0.01)
         end
     end
-    @testset "Sparse SPD Matrices" begin
-        @testset "Sparse Matrix" begin
+    @testset "Sparse Matrices" begin
+        @testset "Random Sparse Matrix" begin
             println("Executing Test 05: Random Sparse Matrix - SQRT")
             A = sprand(6000, 6000, 0.001)
             A = A + A'
             while !isposdef(A)
                 A = A + 60I
             end
-            obv = slq(A, fn = sqrt, ctol = 0.01)
+            obv = chebyhutch(A, 4, 6, fn = sqrt)
             M = Matrix(A)
             acv = tr(sqrt(M))
             @test isapprox(obv, acv, rtol = 0.01)
@@ -70,7 +73,7 @@ using TraceEstimation
         @testset "Wathen Sparse Matrix" begin
             println("Executing Test 06: Finite Element Matrix - Wathen")
             A = matrixdepot("wathen", 40) #7601x7601
-            obv = slq(A, fn = inv, eps = 0.05)
+            obv = chebyhutch(A, 6, 12, fn = inv)
             M = Matrix(A)
             acv = tr(inv(M))
             @test isapprox(obv, acv, rtol = 0.1)
@@ -90,10 +93,55 @@ using TraceEstimation
             K = K+1*I
             =#
             @load "topoptfile.jld2" K
-            obv = slq(K, fn = inv, eps = 0.005)
+            obv = chebyhutch(K, 4, 8, fn = inv)
             M = Matrix(K)
             acv = tr(inv(M))
             @test isapprox(obv, acv, rtol=0.01)
+        end
+    end
+end
+@testset "Cheby-Diagonal" begin
+    @testset "Dense Matrices" begin
+        @testset "Random SPD Matrix (large size)" begin
+            println("Executing Test 2.1: Random Dense SPD - Large Size - Inverse")
+            A = rand(4610, 4610)
+            A = A + A'
+            while !isposdef(A)
+                A = A + 30I
+            end
+            o = chebydiagonal(A, 4, 8, fn = inv)
+            a = diag(inv(A))
+            @test MAPE(a, o) <= 0.2
+        end
+        @testset "Hilbert Matrix" begin
+            println("Executing Test 2.2: Dense Hilbert SPD - Inverse")
+            A = matrixdepot("hilb", 3000)
+            A = A + I
+            o = chebydiagonal(A, 4, 22, fn = inv)
+            a = diag(inv(A))
+            @test MAPE(a, o) <= 0.2
+        end
+    end
+    @testset "Sparse Matrices" begin
+        @testset "Random Sparse Matrix" begin
+            println("Executing Test 2.3: Random Sparse Matrix - SQRT")
+            A = sprand(6000, 6000, 0.001)
+            A = A + A'
+            while !isposdef(A)
+                A = A + 60I
+            end
+            o = chebydiagonal(A, 4, 6, fn = sqrt)
+            M = Matrix(A)
+            a = diag(sqrt(M))
+            @test MAPE(a, o) <= 0.2
+        end
+        @testset "Wathen Sparse Matrix" begin
+            println("Executing Test 2.4: Finite Element Matrix - Wathen")
+            A = matrixdepot("wathen", 40) #7601x7601
+            o = chebydiagonal(A, 4, 22, fn = log)
+            M = Matrix(A)
+            a = diag(log(M))
+            @test MAPE(a, o) <= 0.2
         end
     end
 end

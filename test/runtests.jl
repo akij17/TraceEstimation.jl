@@ -6,6 +6,10 @@ using TraceEstimation
 @testset "slq.jl" begin
     include("slq.jl")
 end
+@testset "chebyhutch.jl" begin
+    include("chebyhutch.jl")
+end
+
 
 #=
 # Hutchinson
