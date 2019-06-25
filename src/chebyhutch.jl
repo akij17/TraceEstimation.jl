@@ -179,7 +179,7 @@ end
 
 function chebydiagonal(A, m, n; fn::Function=invfun, dfn::Function=rademacherDistribution!)
     # calculate extremal eigenvals
-    @time @show λ₁, λₘ = lczeigen(A, fn, dfn)
+    λ₁, λₘ = lczeigen(A, fn, dfn)
     wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = m, n = n)
     return chebydiagonal(wx)
 end
