@@ -133,7 +133,7 @@ function chebyhutch(w::ChebyHutchSpace)
     return dot(v, u) / m
 end
 
-function chebyhutch(A::AbstractMatrix, m::Integer, n::Integer; a::Float64=-1.0, b::Float64=-1.0 fn::Function=invfun, dfn::Function=rademacherDistribution!)
+function chebyhutch(A::AbstractMatrix, m::Integer, n::Integer; a::Float64=-1.0, b::Float64=-1.0, fn::Function=invfun, dfn::Function=rademacherDistribution!)
     # calculate extremal eigenvals
     if a == -1.0 || b == -1.0
         λ₁, λₘ = lczeigen(A, fn, dfn)
@@ -143,6 +143,7 @@ function chebyhutch(A::AbstractMatrix, m::Integer, n::Integer; a::Float64=-1.0, 
     end
     if b != -1.0
         λₘ = b
+    end
 
     wx = ChebyHutchSpace(A, λₘ, λ₁, fn=fn, dfn=dfn, m = m, n = n)
     return chebyhutch(wx)
