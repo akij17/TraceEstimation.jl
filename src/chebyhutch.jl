@@ -116,7 +116,7 @@ function chebypm(w::ChebyHutchSpace)
 end
 """
     chebyhutch(w::ChebyHutchSpace)
-    chebyhutch(A::AbstractMatrix, m::Integer, n::Integer; fn::Function=invfun, dfn::Function=rademacherDistribution!)
+    chebyhutch(A::AbstractMatrix, m::Integer, n::Integer; a::Float64, b::Float64, fn::Function=invfun, dfn::Function=rademacherDistribution!)
     chebyhutch(A::AbstractMatrix; fn::Function=invfun, dfn::Function=rademacherDistribution!)
 
 Chebyshev-Hutchinson to estimate tr(fn(A)), for given matrix A and an analytic function fn.
@@ -136,8 +136,8 @@ end
 function chebyhutch(A::AbstractMatrix, m::Integer, n::Integer; a::Float64=-1.0, b::Float64=-1.0 fn::Function=invfun, dfn::Function=rademacherDistribution!)
     # calculate extremal eigenvals
     if a == -1.0 || b == -1.0
-    λ₁, λₘ = lczeigen(A, fn, dfn)
-
+        λ₁, λₘ = lczeigen(A, fn, dfn)
+    end
     if a != -1.0
         λ₁ = a
     end
