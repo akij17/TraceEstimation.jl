@@ -251,7 +251,7 @@ function point_identification(M, maxPts)
     end
     println("S(sorted): ",S)
     Ms = Vector{eltype(S)}(undef, size(S, 1))
-    Ms .= M[S]
+    Ms .= Mₒ[S]
     println("Ms(Sorted): ",Ms)
 
     S2 = []
