@@ -250,14 +250,6 @@ function point_identification(M, maxPts)
         end
     end
     return S
-    #=
-    #return Sₒ
-    S = []
-    for i in Sₒ
-        push!(S, J[i])
-    end
-    return S
-    =#
 end
 
 function basis_vector!(e, k)
@@ -301,7 +293,6 @@ function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64)
     #S = collect(point_identification(M, p))
     S = point_identification(M, p)
 
-
     # Solve for D(i) = e'(i) A⁻¹ e(i) for i = 1 ... k
     e = zeros(size(A, 1))
     D = eltype(A)[]
@@ -310,12 +301,9 @@ function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64)
         push!(D, e' * cg(A, e, Pl = pl))
     end
 
-    #pchip stuff
-    Ms = Vector{eltype(A)}(undef, size(S, 1))
-    M = sort(M)
-    Ms .= M[S]
-    println(S)
-    println(D)
+    # pchip stuff
+    #println(S)
+    #println(D)
     pchip = interpolate(S, D)
     Tf = 0
     for i in 1:size(A, 1)
