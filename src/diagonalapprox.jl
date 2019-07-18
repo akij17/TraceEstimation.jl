@@ -249,11 +249,6 @@ function point_identification(M, maxPts)
             push!(temp, Mₒ[i])
         end
     end
-    println("S(sorted): ",S)
-    Ms = Vector{eltype(S)}(undef, size(S, 1))
-    Ms .= Mₒ[S]
-    println("Ms(Sorted): ",Ms)
-
     S2 = []
     for i in S
         push!(S2, J[i])
@@ -279,7 +274,7 @@ function linreg(X, Y)
 end
 
 function linear_model(S, D, M, n)
-    b, c = linreg(S, D)
+    b, c = linreg(M[S], D)
     ## Compute trace estimation Tf
     Tf = zero(eltype(D))
     for i in 1:n
@@ -288,10 +283,18 @@ function linear_model(S, D, M, n)
     return Tf
 end
 
-function pchip_iterpolation(S, M)
+function pchip_iterpolation(S, M, D)
+    Ms = Vector{eltype(D)}(undef, size(S, 1))
+    Ms .= M[S]
+    pchip = interpolate(Ms, D)
+    Tf = zero(eltype(D))
+    for i in 1:size(M, 1)
+        Tf += pchip(M[i])
+    end
+    return Tf
 end
 
-function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64)
+function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; fitmodel = "linear")
     # Compute M = diag(approximation of A⁻¹)
     v = Matrix{eltype(A)}(undef, size(A,1), n)
     rademacherDistribution!(v)
@@ -310,22 +313,10 @@ function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64)
         push!(D, e' * cg(A, e, Pl = pl))
     end
 
-    # pchip stuff
-    Ms = Vector{eltype(A)}(undef, size(S, 1))
-    Ms .= M[S]
-    println("S(original): ",S)
-    println("Ms(original): ",Ms)
-    println("D(original): ",D)
-    pchip = interpolate(Ms, D)
-    Tf = 0
-    for i in 1:size(A, 1)
-        Tf += pchip(i)
-    end
-    println(Tf)
-
-
     # Obtain fitting model f(M) ≈ D by fitting f(M(S)) to D(S)
-    Tr = linear_model(S, D, M, size(A, 1))
-    #Tr = pchip_iterpolation(S, M)
-    println(Tr)
+    if fitmodel == "pchip"
+        println(pchip_iterpolation(S, M, D))
+    else
+        println(linear_model(S, D, M, size(A, 1)))
+    end
 end
