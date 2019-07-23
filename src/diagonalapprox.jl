@@ -4,12 +4,13 @@ using LinearAlgebra
 using SparseArrays
 using DataStructures
 using Preconditioners
+using IncompleteLU
 using Statistics
 using IterativeSolvers
-include("common.jl")
 
 export diagonalapprox
 
+## pchip start
 struct _pchip
     N :: Integer
     xs :: Array{Float64}
@@ -86,7 +87,7 @@ function _initial_ds_scipy(xs, ys)
     Δ(i) = (ys[i+1]-ys[i]) / h(i)
 
     N = length(xs)
-    ds = Vector{Float64}(undef, size(xs, 1))
+    ds = similar(xs)
     if N == 2
         ds[:] .= Δ(1)
     else
@@ -143,12 +144,18 @@ end
 function assert_monotonic_increase(xs)
     foldl((a,b) -> (@assert (a < b); b), xs)
 end
+## pcip end
 
-
-# find approximate inverse using cholesky
+# find approximate inverse
 function z_approx_chol(A::AbstractMatrix, v)
     P = CholeskyPreconditioner(A)
     return (P.L \ v) , P
+end
+function z_approx_ilu(A::AbstractMatrix, v)
+    P = ilu(A)
+    L = P.L + I
+    U = P.U
+    return (U \ (L \ v)), P
 end
 
 
@@ -245,15 +252,11 @@ function point_identification(M, maxPts)
     S = []
     for i in Sₒ
         if (Mₒ[i] in temp) == false
-            push!(S, i)
+            push!(S, J[i])
             push!(temp, Mₒ[i])
         end
     end
-    S2 = []
-    for i in S
-        push!(S2, J[i])
-    end
-    return S2
+    return S
 end
 
 function basis_vector!(e, k)
@@ -275,7 +278,6 @@ end
 
 function linear_model(S, D, M, n)
     b, c = linreg(M[S], D)
-    ## Compute trace estimation Tf
     Tf = zero(eltype(D))
     for i in 1:n
         Tf += b * M[i] + c
@@ -283,40 +285,53 @@ function linear_model(S, D, M, n)
     return Tf
 end
 
-function pchip_iterpolation(S, M, D)
-    Ms = Vector{eltype(D)}(undef, size(S, 1))
-    Ms .= M[S]
-    pchip = interpolate(Ms, D)
+function pchip_iterpolation(S, D, M, n)
+    pchip = interpolate(M[S], D)
     Tf = zero(eltype(D))
-    for i in 1:size(M, 1)
+    for i in 1:n
         Tf += pchip(M[i])
     end
     return Tf
 end
 
-function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; fitmodel = "linear")
+function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
     # Compute M = diag(approximation of A⁻¹)
     v = Matrix{eltype(A)}(undef, size(A,1), n)
     rademacherDistribution!(v)
-    Z, pl = z_approx_chol(A, v)
-    M = vec(mean(v .* Z , dims=2))
+    if pc == "ilu"
+        Z, pl = z_approx_ilu(A, v)
+        M = vec(mean(v .* Z , dims=2))
+    elseif pc == "cheby"
+        M = chebydiagonal(A, 4, 6)
+        pl = ilu(A)
+    else
+        Z, pl = z_approx_chol(A, v)
+    end
+
+    if pc == "cheby"
+        pl = ilu(A)
+    else
+        M = vec(mean(v .* Z , dims=2))
+    end
 
     # Compute fitting sample S, set of k indices
-    #S = collect(point_identification(M, p))
     S = point_identification(M, p)
 
     # Solve for D(i) = e'(i) A⁻¹ e(i) for i = 1 ... k
     e = zeros(size(A, 1))
     D = eltype(A)[]
+    x = similar(e)
     for i in 1:size(S, 1)
         basis_vector!(e, S[i])
         push!(D, e' * cg(A, e, Pl = pl))
     end
 
     # Obtain fitting model f(M) ≈ D by fitting f(M(S)) to D(S)
-    if fitmodel == "pchip"
-        println(pchip_iterpolation(S, M, D))
+    Tf = zero(eltype(A))
+    if model == "pchip"
+        Tf = pchip_iterpolation(S, D, M, size(A, 1))
     else
-        println(linear_model(S, D, M, size(A, 1)))
+        Tf = linear_model(S, D, M, size(A, 1))
     end
+    return Tf
 end
