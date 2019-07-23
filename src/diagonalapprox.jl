@@ -157,7 +157,11 @@ function z_approx_ilu(A::AbstractMatrix, v)
     U = P.U
     return (U \ (L \ v)), P
 end
-
+function z_approx_amg(A::AbstractMatrix, v)
+    P = AMGPreconditioner(A)
+    z = P \ v
+    return z, P
+end
 
 # Minimize this function for value of t
 # i < t < j, t ∈ 𝐙
@@ -293,14 +297,26 @@ function pchip_iterpolation(S, D, M, n)
     end
     return Tf
 end
+"""
+    diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
 
+Diagonal Approximation algorithm for calculating trace of the matrix inverse.
+
+# Arguments
+- `A` : Symmetric Positive Definite Matrix
+- `n` : Probing vector count for initial approximation.
+- `p` : Point coubt for interpolation
+- `pc` : Preconditioner used for initial approximation and cg ("chol" - Incomplete Cholesky, "ilu" - IncompleteLU, "amg" - AlgebraicMultigrid, "cheby" - Chebyshev Approximation). Default = "chol"
+- `model` : Fitting model used for calculation of trace ("linear" - Linear Regression, "pchip" - PCHIP interpolation). Default = "linear".
+"""
 function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
     # Compute M = diag(approximation of A⁻¹)
     v = Matrix{eltype(A)}(undef, size(A,1), n)
     rademacherDistribution!(v)
     if pc == "ilu"
         Z, pl = z_approx_ilu(A, v)
-        M = vec(mean(v .* Z , dims=2))
+    elseif pc == "amg"
+        Z, pl = z_approx_chol(A, v)
     elseif pc == "cheby"
         M = chebydiagonal(A, 4, 6)
         pl = ilu(A)
@@ -308,9 +324,7 @@ function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", mode
         Z, pl = z_approx_chol(A, v)
     end
 
-    if pc == "cheby"
-        pl = ilu(A)
-    else
+    if pc != "cheby"
         M = vec(mean(v .* Z , dims=2))
     end
 
@@ -320,10 +334,17 @@ function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", mode
     # Solve for D(i) = e'(i) A⁻¹ e(i) for i = 1 ... k
     e = zeros(size(A, 1))
     D = eltype(A)[]
-    x = similar(e)
-    for i in 1:size(S, 1)
-        basis_vector!(e, S[i])
-        push!(D, e' * cg(A, e, Pl = pl))
+    if pc == "cheby"
+        lmin, lmax = lczeigen(A, invfun, rademacherDistribution!)
+        for i in 1:size(S, 1)
+            basis_vector!(e,S[i])
+            push!(D, e' * chebyshev(A, e, lmin, lmax, Pl = pl))
+        end
+    else
+        for i in 1:size(S, 1)
+            basis_vector!(e, S[i])
+            push!(D, e' * cg(A, e, Pl = pl))
+        end
     end
 
     # Obtain fitting model f(M) ≈ D by fitting f(M(S)) to D(S)
