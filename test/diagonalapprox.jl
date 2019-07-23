@@ -44,7 +44,7 @@ using TraceEstimation
     end
     @testset "kuu" begin
         println("Executing Test 05: kuu matrix")
-        A = MatrixMarket.mmread("kuu.mtx")
+        A = MatrixMarket.mmread("Kuu.mtx")
         M = Matrix(A)
         act = tr(inv(M))
         obv = diagonalapprox(A, 8, 80)
