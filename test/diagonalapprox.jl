@@ -15,7 +15,7 @@ using TraceEstimation
         A = A + A' + 30I
         M = Matrix(A)
         act = tr(inv(M))
-        obv = diagonalapprox(A, 4, 20)
+        obv = tr_inv(A, 4, 20)
         @test isapprox(act, obv, rtol = 0.2)
     end
     @testset "poissonmatrix" begin
@@ -23,7 +23,7 @@ using TraceEstimation
         A = matrixdepot("poisson", 50)
         M = Matrix(A)
         act = tr(inv(M))
-        obv = diagonalapprox(A, 8, 40)
+        obv = tr_inv(A, 8, 40)
         @test isapprox(act, obv, rtol = 0.2)
     end
     @testset "wathenmatrix" begin
@@ -31,7 +31,7 @@ using TraceEstimation
         A = matrixdepot("wathen", 35)
         M = Matrix(A)
         act = tr(inv(M))
-        obv = diagonalapprox(A, 8, 40, pc = "ilu")
+        obv = tr_inv(A, 8, 40, pc = "ilu")
         @test isapprox(act, obv, rtol = 0.2)
     end
     @testset "nasa2146" begin
@@ -39,7 +39,7 @@ using TraceEstimation
         A = MatrixMarket.mmread("nasa2146.mtx")
         M = Matrix(A)
         act = tr(inv(M))
-        obv = diagonalapprox(A, 8, 40)
+        obv = tr_inv(A, 8, 40)
         @test isapprox(act, obv, rtol = 0.2)
     end
     @testset "kuu" begin
@@ -47,7 +47,7 @@ using TraceEstimation
         A = MatrixMarket.mmread("Kuu.mtx")
         M = Matrix(A)
         act = tr(inv(M))
-        obv = diagonalapprox(A, 8, 80)
+        obv = tr_inv(A, 8, 80)
         @test isapprox(act, obv, rtol = 0.2)
     end
     @testset "KMatrix" begin
@@ -56,7 +56,7 @@ using TraceEstimation
         K = SparseMatrixCSC(K)
         M = Matrix(K)
         act = tr(inv(M))
-        obv = diagonalapprox(K, 8, 150)
+        obv = tr_inv(K, 8, 150)
         @test isapprox(act, obv, rtol = 0.2)
     end
 end
