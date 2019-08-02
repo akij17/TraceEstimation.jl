@@ -8,7 +8,7 @@ using IncompleteLU
 using Statistics
 using IterativeSolvers
 
-export diagonalapprox
+export diagonalapprox, tr_inv, diag_inv
 
 ## pchip start
 struct _pchip
@@ -283,33 +283,26 @@ end
 function linear_model(S, D, M, n)
     b, c = linreg(M[S], D)
     Tf = zero(eltype(D))
+    Ms = Vector{eltype(D)}(undef, n)
     for i in 1:n
+        Ms[i] = b * M[i] + c
         Tf += b * M[i] + c
     end
-    return Tf
+    return Tf, Ms
 end
 
 function pchip_iterpolation(S, D, M, n)
     pchip = interpolate(M[S], D)
     Tf = zero(eltype(D))
+    Ms = Vector{eltype(D)}(undef, n)
     for i in 1:n
+        Ms[i] = pchip(M[i])
         Tf += pchip(M[i])
     end
-    return Tf
+    return Tf, Ms
 end
-"""
-    diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
 
-Diagonal Approximation algorithm for calculating trace of the matrix inverse.
-
-# Arguments
-- `A` : Symmetric Positive Definite Matrix
-- `n` : Probing vector count for initial approximation.
-- `p` : Point coubt for interpolation
-- `pc` : Preconditioner used for initial approximation and cg ("chol" - Incomplete Cholesky, "ilu" - IncompleteLU, "amg" - AlgebraicMultigrid, "cheby" - Chebyshev Approximation). Default = "chol"
-- `model` : Fitting model used for calculation of trace ("linear" - Linear Regression, "pchip" - PCHIP interpolation). Default = "linear".
-"""
-function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
+function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64, pc, model)
     # Compute M = diag(approximation of A⁻¹)
     v = Matrix{eltype(A)}(undef, size(A,1), n)
     rademacherDistribution!(v)
@@ -349,10 +342,42 @@ function diagonalapprox(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", mode
 
     # Obtain fitting model f(M) ≈ D by fitting f(M(S)) to D(S)
     Tf = zero(eltype(A))
+    Ms = Vector{eltype(A)}(undef, size(A, 1))
     if model == "pchip"
-        Tf = pchip_iterpolation(S, D, M, size(A, 1))
+        Tf, Ms = pchip_iterpolation(S, D, M, size(A, 1))
     else
-        Tf = linear_model(S, D, M, size(A, 1))
+        Tf, Ms = linear_model(S, D, M, size(A, 1))
     end
-    return Tf
+    return (Tf, Ms)
+end
+"""
+    tr_inv(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
+
+Diagonal Approximation algorithm for calculating trace of the matrix inverse.
+
+# Arguments
+- `A` : Symmetric Positive Definite Matrix
+- `n` : Probing vector count for initial approximation.
+- `p` : Sample Points count for interpolation
+- `pc` : Preconditioner used for initial approximation and cg ("chol" - Incomplete Cholesky, "ilu" - IncompleteLU, "amg" - AlgebraicMultigrid, "cheby" - Chebyshev Approximation). Default = "chol"
+- `model` : Fitting model used for calculation of trace ("linear" - Linear Regression, "pchip" - PCHIP interpolation). Default = "linear".
+"""
+function tr_inv(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
+    return diagonalapprox(A, n, p, pc, model)[1];
+end
+
+"""
+    diag_inv(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
+
+Diagonal Approximation algorithm for the matrix inverse.
+
+# Arguments
+- `A` : Symmetric Positive Definite Matrix
+- `n` : Probing vector count for initial approximation.
+- `p` : Sample Points count for interpolation
+- `pc` : Preconditioner used for initial approximation and cg ("chol" - Incomplete Cholesky, "ilu" - IncompleteLU, "amg" - AlgebraicMultigrid, "cheby" - Chebyshev Approximation). Default = "chol"
+- `model` : Fitting model used for calculation of trace ("linear" - Linear Regression, "pchip" - PCHIP interpolation). Default = "linear".
+"""
+function diag_inv(A::AbstractMatrix, n::Int64, p::Int64; pc = "chol", model = "linear")
+    return diagonalapprox(A, n, p, pc, model)[2];
 end
