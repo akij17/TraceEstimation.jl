@@ -36,7 +36,7 @@ using TraceEstimation
         end
         @testset "Random SPD Matrix (large size)" begin
             println("Executing Test 03: Random Dense SPD - Large Size - Log")
-            A = rand(4610, 4610)
+            A = rand(4000, 4000)
             A = A + A'
             while !isposdef(A)
                 A = A + 30I

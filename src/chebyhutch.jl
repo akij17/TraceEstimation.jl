@@ -1,7 +1,7 @@
 # Stochastic Chebyshev Polynomial method
 # Based on APPROXIMATING SPECTRAL SUMS OF LARGE-SCALE MATRICES USING STOCHASTIC CHEBYSHEV APPROXIMATIONS By Han, Malioutov, Avron and Shin
 
-export ChebyHutchSpace, chebyhutch, chebydiagonal
+export ChebyHutchSpace, chebyhutch, chebydiagonal, lczeigen
 
 using LinearAlgebra
 using Parameters
