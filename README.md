@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/luca-aki/TraceEstimation.jl.svg?branch=master)](https://travis-ci.com/luca-aki/TraceEstimation.jl)
+
 # TraceEstimation.jl
 Trace Estimation methods for implicitly available available matrix such as log determinant and inverse of a matrix.
 
