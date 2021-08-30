@@ -1,6 +1,11 @@
-[![Build Status](https://travis-ci.com/luca-aki/TraceEstimation.jl.svg?branch=master)](https://travis-ci.com/luca-aki/TraceEstimation.jl)
+# TraceEstimation
 
-# TraceEstimation.jl
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://mohamed82008.github.io/TraceEstimation.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://mohamed82008.github.io/TraceEstimation.jl/dev)
+[![Build Status](https://github.com/mohamed82008/TraceEstimation.jl/workflows/CI/badge.svg)](https://github.com/mohamed82008/TraceEstimation.jl/actions)
+[![Coverage](https://codecov.io/gh/mohamed82008/TraceEstimation.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/mohamed82008/TraceEstimation.jl)
+
+
 Trace Estimation methods for implicitly available available matrix such as log determinant and inverse of a matrix.
 
 Documentation update coming soon. For now these articles should be sufficient. 
