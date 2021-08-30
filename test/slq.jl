@@ -4,10 +4,9 @@ using LinearAlgebra
 using SparseArrays
 using MatrixDepot
 using JLD2, FileIO
-using Suppressor
 using TraceEstimation
 
-@suppress @testset "SLQ" begin
+@testset "SLQ" begin
     Random.seed!(123543)
     @testset "Dense SPD Matrices" begin
         @testset "a[i,j] = exp(-2 * abS(i - j)) (small size)" begin
