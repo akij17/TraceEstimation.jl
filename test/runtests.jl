@@ -1,34 +1,45 @@
-using Base
+using SafeTestsets
 using Test
 using TraceEstimation
 
+const METHOD = get(ENV, "METHOD", "all")
+
 # SLQ
-println("Running tests for SLQ")
-@testset "slq.jl" begin
-    include("slq.jl")
+if METHOD in ("all", "slq")
+    println("Running tests for SLQ")
+    @safetestset "slq.jl" begin
+        include("slq.jl")
+    end
 end
+
 # cheby
-println("Running tests for ChebyHutch")
-@testset "chebyhutch.jl" begin
-    include("chebyhutch.jl")
+if METHOD in ("all", "chebyhutch")
+    println("Running tests for ChebyHutch")
+    @safetestset "chebyhutch.jl" begin
+        include("chebyhutch.jl")
+    end
 end
 
 # diagonalapprox
-println("Running tests for DiagonalApprox")
-@testset "diagonalapprox.jl" begin
-    include("diagonalapprox.jl")
+if METHOD in ("all", "diagonalapprox")
+    println("Running tests for DiagonalApprox")
+    @safetestset "diagonalapprox.jl" begin
+        include("diagonalapprox.jl")
+    end
 end
 
-
-
-#=
 # Hutchinson
-@testset "hutchinson.jl" begin
-    include("hutchinson.jl")
+if METHOD in ("all", "hutchinson")
+    println("Running tests for Hutchinson")
+    @safetestset "hutchinson.jl" begin
+        include("hutchinson.jl")
+    end
 end
 
 #Diagonal Approximation
-@testset "diagapp.jl" begin
-    include("diagapp.jl")
+if METHOD in ("all", "diagapp")
+    println("Running tests for diagapp")
+    @safetestset "diagapp.jl" begin
+        include("diagapp.jl")
+    end
 end
-=#

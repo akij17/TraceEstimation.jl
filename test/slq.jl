@@ -4,10 +4,9 @@ using LinearAlgebra
 using SparseArrays
 using MatrixDepot
 using JLD2, FileIO
-using Suppressor
 using TraceEstimation
 
-@suppress @testset "SLQ" begin
+@testset "SLQ" begin
     Random.seed!(123543)
     @testset "Dense SPD Matrices" begin
         @testset "a[i,j] = exp(-2 * abS(i - j)) (small size)" begin
@@ -41,6 +40,7 @@ using TraceEstimation
             while !isposdef(A)
                 A = A + 30I
             end
+            A = A + 30I
             obv = slq(A, fn = log, ctol = 0.01)
             acv = tr(log(A))
             @test isapprox(obv, acv, rtol=0.01)

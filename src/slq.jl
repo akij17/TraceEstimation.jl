@@ -8,9 +8,11 @@ export SLQWorkspace, slq
 using LinearAlgebra
 using Parameters
 
-struct SLQWorkspace{elt, TM<:AbstractMatrix{elt}, FN<:Function,
-    FN2<:Function, I<:Integer, TV<:AbstractVector{elt}, AV<:AbstractVector{elt},
-    TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real}
+struct SLQWorkspace{
+    elt, TM<:AbstractMatrix{elt}, FN<:Function, FN2<:Function,
+    I<:Integer, TV<:AbstractVector{elt}, AV<:AbstractVector{elt},
+    TS<:SymTridiagonal, TM2<:AbstractMatrix{elt}, R<:Real,
+}
     A::TM
     fn::FN
     dfn::FN2
