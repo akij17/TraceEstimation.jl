@@ -34,6 +34,7 @@ using TraceEstimation
         obv = tr_inv(A, 8, 40, pc = "ilu")
         @test isapprox(act, obv, rtol = 0.2)
     end
+    #=
     @testset "nasa2146" begin
         println("Executing Test 04: nasa2146 matrix")
         A = MatrixMarket.mmread("nasa2146.mtx")
@@ -42,7 +43,6 @@ using TraceEstimation
         obv = tr_inv(A, 8, 40)
         @test isapprox(act, obv, rtol = 0.2)
     end
-    #=
     @testset "kuu" begin
         println("Executing Test 05: kuu matrix")
         A = MatrixMarket.mmread("Kuu.mtx")
