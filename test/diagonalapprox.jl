@@ -42,6 +42,7 @@ using TraceEstimation
         obv = tr_inv(A, 8, 40)
         @test isapprox(act, obv, rtol = 0.2)
     end
+    #=
     @testset "kuu" begin
         println("Executing Test 05: kuu matrix")
         A = MatrixMarket.mmread("Kuu.mtx")
@@ -50,6 +51,7 @@ using TraceEstimation
         obv = tr_inv(A, 8, 80)
         @test isapprox(act, obv, rtol = 0.2)
     end
+    =#
     @testset "KMatrix" begin
         println("Executing Test 06: K matrix (high condition)")
         @load "topopt902.jld2" K
